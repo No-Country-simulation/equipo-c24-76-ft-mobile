@@ -1,0 +1,20 @@
+{
+  "name": "equipo-c24-76-ft-mobile",
+  "version": "1.0.0",
+  "description": "A new Flutter project.",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/No-Country-simulation/equipo-c24-76-ft-mobile.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/No-Country-simulation/equipo-c24-76-ft-mobile/issues"
+  },
+  "homepage": "https://github.com/No-Country-simulation/equipo-c24-76-ft-mobile#readme"
+}
