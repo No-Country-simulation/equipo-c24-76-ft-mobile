@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 
 class OnboardingScreen extends StatefulWidget {
+  const OnboardingScreen({Key? key}) : super(key: key);
+
   @override
-  _OnboardingScreenState createState() => _OnboardingScreenState();
+  State<OnboardingScreen> createState() => _OnboardingScreenState();
 }
 
 class _OnboardingScreenState extends State<OnboardingScreen> {
@@ -45,18 +47,18 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   Image.asset(_pages[index]['image']!, height: 300),
-                  SizedBox(height: 20),
+                  const SizedBox(height: 20),
                   Text(
                     _pages[index]['title']!,
-                    style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+                    style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
                   ),
-                  SizedBox(height: 10),
+                  const SizedBox(height: 10),
                   Padding(
-                    padding: EdgeInsets.symmetric(horizontal: 30),
+                    padding: const EdgeInsets.symmetric(horizontal: 30),
                     child: Text(
                       _pages[index]['description']!,
                       textAlign: TextAlign.center,
-                      style: TextStyle(fontSize: 16, color: Colors.grey),
+                      style: const TextStyle(fontSize: 16, color: Colors.grey),
                     ),
                   ),
                 ],
@@ -72,7 +74,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
               children: List.generate(
                 _pages.length,
                 (index) => Container(
-                  margin: EdgeInsets.symmetric(horizontal: 5),
+                  margin: const EdgeInsets.symmetric(horizontal: 5),
                   width: _currentPage == index ? 12 : 8,
                   height: _currentPage == index ? 12 : 8,
                   decoration: BoxDecoration(
@@ -89,18 +91,25 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
             right: 30,
             child: ElevatedButton(
               onPressed: () {
-                Navigator.pushReplacementNamed(context, '/login');
+                if (_currentPage == _pages.length - 1) {
+                  Navigator.pushReplacementNamed(context, '/login');
+                } else {
+                  _pageController.nextPage(
+                    duration: const Duration(milliseconds: 300),
+                    curve: Curves.easeInOut,
+                  );
+                }
               },
               style: ElevatedButton.styleFrom(
                 backgroundColor: Colors.blue,
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(30),
                 ),
-                padding: EdgeInsets.symmetric(vertical: 15),
+                padding: const EdgeInsets.symmetric(vertical: 15),
               ),
               child: Text(
                 _currentPage == _pages.length - 1 ? 'Empezar' : 'Siguiente',
-                style: TextStyle(fontSize: 18, color: Colors.white),
+                style: const TextStyle(fontSize: 18, color: Colors.white),
               ),
             ),
           ),
