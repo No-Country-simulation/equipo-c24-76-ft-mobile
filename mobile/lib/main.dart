@@ -77,6 +77,7 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
           BottomNavigationBarItem(icon: Icon(Icons.add_circle), label: "Publicar"),
           BottomNavigationBarItem(icon: Icon(Icons.notifications), label: "Notificaciones"),
           BottomNavigationBarItem(icon: Icon(Icons.person), label: "Perfil"),
+          
         ],
       ),
     );
