@@ -41,6 +41,8 @@ dependencies:
   google_sign_in: ^6.2.1
   flutter_facebook_auth: ^6.0.4
   image_picker: ^1.0.7
+  supabase_flutter: ^2.8.3
+  intl: ^0.20.2
 
 dev_dependencies:
   flutter_test:

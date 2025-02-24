@@ -3,8 +3,10 @@ import 'package:image_picker/image_picker.dart';
 import 'dart:io';
 
 class PostScreen extends StatefulWidget {
+  const PostScreen({Key? key}) : super(key: key);
+
   @override
-  _PostScreenState createState() => _PostScreenState();
+  State<PostScreen> createState() => _PostScreenState();
 }
 
 class _PostScreenState extends State<PostScreen> {
@@ -22,10 +24,9 @@ class _PostScreenState extends State<PostScreen> {
   }
 
   void _publishPost() {
-    // Aquí iría la lógica para publicar el post
     if (_contentController.text.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('El contenido no puede estar vacío')),
+        const SnackBar(content: Text('El contenido no puede estar vacío')),
       );
       return;
     }
@@ -38,28 +39,28 @@ class _PostScreenState extends State<PostScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text('Nueva Publicación'),
+        title: const Text('Nueva Publicación'),
         actions: [
           TextButton(
             onPressed: _publishPost,
-            child: Text('Publicar'),
+            child: const Text('Publicar'),
           ),
         ],
       ),
       body: Padding(
-        padding: EdgeInsets.all(16.0),
+        padding: const EdgeInsets.all(16.0),
         child: Column(
           children: [
             TextField(
               controller: _contentController,
               maxLength: 280,
               maxLines: 5,
-              decoration: InputDecoration(
+              decoration: const InputDecoration(
                 hintText: '¿Qué estás pensando?',
                 border: OutlineInputBorder(),
               ),
             ),
-            SizedBox(height: 16),
+            const SizedBox(height: 16),
             if (_imageFile != null)
               Image.file(
                 _imageFile!,
@@ -69,12 +70,12 @@ class _PostScreenState extends State<PostScreen> {
               ),
             ElevatedButton.icon(
               onPressed: _pickImage,
-              icon: Icon(Icons.image),
-              label: Text('Agregar imagen'),
+              icon: const Icon(Icons.image),
+              label: const Text('Agregar imagen'),
             ),
           ],
         ),
       ),
     );
   }
-} 
+}
