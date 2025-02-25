@@ -1,4 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:provider/provider.dart';
+
 
 class LoginScreen extends StatefulWidget {
   @override
@@ -11,21 +14,53 @@ class _LoginScreenState extends State<LoginScreen> {
   bool _isLoading = false;
 
   final _formKey = GlobalKey<FormState>();
+  final supabase = Supabase.instance.client;
 
-  void _login() {
-    if (_formKey.currentState!.validate()) {
-      setState(() {
-        _isLoading = true;
-      });
+  /// 🔹 Iniciar sesión con email y contraseña
+  Future<void> _login() async {
+    if (!_formKey.currentState!.validate()) return;
 
-      Future.delayed(Duration(seconds: 2), () {
-        setState(() {
-          _isLoading = false;
-        });
+    setState(() => _isLoading = true);
 
-        Navigator.pushReplacementNamed(context, '/home');
-      });
+    try {
+      await supabase.auth.signInWithPassword(
+        email: _emailController.text.trim(),
+        password: _passwordController.text.trim(),
+      );
+      Navigator.pushReplacementNamed(context, '/home');
+    } on AuthException catch (e) {
+      _showError(e.message);
+    } finally {
+      setState(() => _isLoading = false);
     }
+  }
+
+  /// 🔹 Iniciar sesión con Google
+  Future<void> _signInWithGoogle() async {
+  try {
+    await supabase.auth.signInWithOAuth('google' as OAuthProvider);
+    Navigator.pushReplacementNamed(context, '/home');
+  } on AuthException catch (e) {
+    _showError(e.message);
+  }
+}
+
+  /// 🔹 Iniciar sesión con Facebook
+  Future<void> _signInWithFacebook() async {
+  try {
+    await supabase.auth.signInWithOAuth('facebook' as OAuthProvider);
+    Navigator.pushReplacementNamed(context, '/home');
+  } on AuthException catch (e) {
+    _showError(e.message);
+  }
+}
+
+  /// 🔹 Mostrar errores
+  void _showError(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+      content: Text(message, style: TextStyle(color: Colors.white)),
+      backgroundColor: Colors.red,
+    ));
   }
 
   @override
@@ -99,23 +134,48 @@ class _LoginScreenState extends State<LoginScreen> {
                         SizedBox(height: 20),
                         _isLoading
                             ? CircularProgressIndicator()
-                            : ElevatedButton(
-                                onPressed: _login,
-                                style: ElevatedButton.styleFrom(
-                                  backgroundColor: Colors.blue.shade900,
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(10),
+                            : Column(
+                                children: [
+                                  ElevatedButton(
+                                    onPressed: _login,
+                                    style: ElevatedButton.styleFrom(
+                                      backgroundColor: Colors.blue.shade900,
+                                      shape: RoundedRectangleBorder(
+                                        borderRadius: BorderRadius.circular(10),
+                                      ),
+                                      padding: EdgeInsets.symmetric(
+                                          vertical: 12, horizontal: 80),
+                                    ),
+                                    child: Text(
+                                      "Ingresar",
+                                      style: TextStyle(
+                                        fontSize: 18,
+                                        color: Colors.white,
+                                      ),
+                                    ),
                                   ),
-                                  padding: EdgeInsets.symmetric(
-                                      vertical: 12, horizontal: 80),
-                                ),
-                                child: Text(
-                                  "Ingresar",
-                                  style: TextStyle(
-                                    fontSize: 18,
-                                    color: Colors.white,
+                                  SizedBox(height: 10),
+                                  OutlinedButton.icon(
+                                    onPressed: _signInWithGoogle,
+                                    icon: Icon(Icons.login, color: Colors.red),
+                                    label: Text("Ingresar con Google"),
+                                    style: OutlinedButton.styleFrom(
+                                      padding: EdgeInsets.symmetric(
+                                          vertical: 12, horizontal: 20),
+                                    ),
                                   ),
-                                ),
+                                  SizedBox(height: 10),
+                                  OutlinedButton.icon(
+                                    onPressed: _signInWithFacebook,
+                                    icon:
+                                        Icon(Icons.facebook, color: Colors.blue),
+                                    label: Text("Ingresar con Facebook"),
+                                    style: OutlinedButton.styleFrom(
+                                      padding: EdgeInsets.symmetric(
+                                          vertical: 12, horizontal: 20),
+                                    ),
+                                  ),
+                                ],
                               ),
                         SizedBox(height: 10),
                         TextButton(
