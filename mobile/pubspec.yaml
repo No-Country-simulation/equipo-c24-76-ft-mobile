@@ -40,9 +40,11 @@ dependencies:
   firebase_storage: ^11.6.0
   google_sign_in: ^6.2.1
   flutter_facebook_auth: ^6.0.4
-  image_picker: ^1.0.7
-  supabase_flutter: ^2.8.3
+  image_picker: ^1.1.2
+  supabase_flutter: ^2.8.4
   intl: ^0.20.2
+  provider: ^6.1.2
+  permission_handler: ^11.4.0
 
 dev_dependencies:
   flutter_test:
