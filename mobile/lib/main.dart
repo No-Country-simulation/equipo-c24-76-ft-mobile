@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:permission_handler/permission_handler.dart';
 import 'screens/onboarding_screen.dart';
 import 'screens/login_screen.dart';
 import 'screens/home_screen.dart';
@@ -16,7 +17,17 @@ void main() async {
     anonKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InB4cGxrb3RldXh3Z25peG1wcHVtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDAwMjMxNjcsImV4cCI6MjA1NTU5OTE2N30.ADpeeAE7XsK1ZbmIhFZggEzZIJE7aIZPQ-_lB1ln6_U', 
   );
 
+  await requestPermissions();
+  
   runApp(const MyApp());
+}
+
+Future<void> requestPermissions() async {
+  await [
+    Permission.camera,
+    Permission.storage,
+    Permission.location,
+  ].request();
 }
 
 class MyApp extends StatelessWidget {
@@ -25,6 +36,7 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
+      debugShowCheckedModeBanner: false,
       title: 'Red Social de Viajes',
       theme: ThemeData(
         colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
@@ -36,6 +48,9 @@ class MyApp extends StatelessWidget {
         '/login': (context) => LoginScreen(),
         '/home': (context) => const MainNavigationScreen(),
         '/post': (context) => const PostScreen(),
+        '/search': (context) => const SearchScreen(),
+        '/notifications': (context) => const NotificationsScreen(),
+        '/profile': (context) => const ProfileScreen(),
       },
     );
   }
