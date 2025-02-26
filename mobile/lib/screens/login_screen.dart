@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:provider/provider.dart';
-
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 class LoginScreen extends StatefulWidget {
   @override
@@ -35,31 +34,63 @@ class _LoginScreenState extends State<LoginScreen> {
     }
   }
 
+  /// 🔹 Registrar un nuevo usuario con email y contraseña
+  Future<void> _signUp() async {
+    if (!_formKey.currentState!.validate()) return;
+
+    setState(() => _isLoading = true);
+
+    try {
+      final AuthResponse res = await supabase.auth.signUp(
+        email: _emailController.text.trim(),
+        password: _passwordController.text.trim(),
+      );
+
+      if (res.user != null) {
+        _showSuccess("Registro exitoso. Verifica tu correo electrónico.");
+      }
+    } on AuthException catch (e) {
+      _showError(e.message);
+    } finally {
+      setState(() => _isLoading = false);
+    }
+  }
+
   /// 🔹 Iniciar sesión con Google
   Future<void> _signInWithGoogle() async {
-  try {
-    await supabase.auth.signInWithOAuth('google' as OAuthProvider);
-    Navigator.pushReplacementNamed(context, '/home');
-  } on AuthException catch (e) {
-    _showError(e.message);
+    try {
+      await supabase.auth.signInWithOAuth(OAuthProvider.google);
+
+      Navigator.pushReplacementNamed(context, '/home');
+    } on AuthException catch (e) {
+      _showError(e.message);
+    }
   }
-}
 
   /// 🔹 Iniciar sesión con Facebook
   Future<void> _signInWithFacebook() async {
-  try {
-    await supabase.auth.signInWithOAuth('facebook' as OAuthProvider);
-    Navigator.pushReplacementNamed(context, '/home');
-  } on AuthException catch (e) {
-    _showError(e.message);
+    try {
+      await supabase.auth.signInWithOAuth(OAuthProvider.facebook);
+
+      Navigator.pushReplacementNamed(context, '/home');
+    } on AuthException catch (e) {
+      _showError(e.message);
+    }
   }
-}
 
   /// 🔹 Mostrar errores
   void _showError(String message) {
     ScaffoldMessenger.of(context).showSnackBar(SnackBar(
       content: Text(message, style: TextStyle(color: Colors.white)),
       backgroundColor: Colors.red,
+    ));
+  }
+
+  /// 🔹 Mostrar éxito
+  void _showSuccess(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+      content: Text(message, style: TextStyle(color: Colors.white)),
+      backgroundColor: Colors.green,
     ));
   }
 
@@ -155,6 +186,18 @@ class _LoginScreenState extends State<LoginScreen> {
                                     ),
                                   ),
                                   SizedBox(height: 10),
+                                  OutlinedButton(
+                                    onPressed: _signUp,
+                                    style: OutlinedButton.styleFrom(
+                                      padding: EdgeInsets.symmetric(
+                                          vertical: 12, horizontal: 80),
+                                    ),
+                                    child: Text(
+                                      "Registrarse",
+                                      style: TextStyle(fontSize: 18),
+                                    ),
+                                  ),
+                                  SizedBox(height: 10),
                                   OutlinedButton.icon(
                                     onPressed: _signInWithGoogle,
                                     icon: Icon(Icons.login, color: Colors.red),
@@ -167,8 +210,7 @@ class _LoginScreenState extends State<LoginScreen> {
                                   SizedBox(height: 10),
                                   OutlinedButton.icon(
                                     onPressed: _signInWithFacebook,
-                                    icon:
-                                        Icon(Icons.facebook, color: Colors.blue),
+                                    icon: Icon(Icons.facebook, color: Colors.blue),
                                     label: Text("Ingresar con Facebook"),
                                     style: OutlinedButton.styleFrom(
                                       padding: EdgeInsets.symmetric(
