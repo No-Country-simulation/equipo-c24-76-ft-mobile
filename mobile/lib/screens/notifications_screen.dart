@@ -17,7 +17,7 @@ class NotificationsScreen extends StatelessWidget {
               backgroundImage: NetworkImage('https://via.placeholder.com/150'),
             ),
             title: Text('Usuario te ha seguido'),
-            subtitle: Text('Hace 2 horas'),
+            subtitle: Text('Hace 542 horas'),
             onTap: () {
               // Implementar navegación a la notificación
             },
