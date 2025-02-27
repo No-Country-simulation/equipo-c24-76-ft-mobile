@@ -3,6 +3,8 @@ import 'package:provider/provider.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 class LoginScreen extends StatefulWidget {
+  const LoginScreen({super.key});
+
   @override
   _LoginScreenState createState() => _LoginScreenState();
 }
@@ -58,14 +60,17 @@ class _LoginScreenState extends State<LoginScreen> {
 
   /// 🔹 Iniciar sesión con Google
   Future<void> _signInWithGoogle() async {
-    try {
-      await supabase.auth.signInWithOAuth(OAuthProvider.google);
-
-      Navigator.pushReplacementNamed(context, '/home');
-    } on AuthException catch (e) {
-      _showError(e.message);
-    }
+  try {
+    await supabase.auth.signInWithOAuth(
+      OAuthProvider.google,
+      redirectTo: 'io.supabase.flutter://login-callback',
+    );
+    Navigator.pushReplacementNamed(context, '/home');
+  } on AuthException catch (e) {
+    _showError(e.message);
   }
+}
+
 
   /// 🔹 Iniciar sesión con Facebook
   Future<void> _signInWithFacebook() async {

@@ -18,7 +18,7 @@ void main() async {
   );
 
   await requestPermissions();
-  
+
   runApp(const MyApp());
 }
 
@@ -30,8 +30,41 @@ Future<void> requestPermissions() async {
   ].request();
 }
 
-class MyApp extends StatelessWidget {
-  const MyApp({Key? key}) : super(key: key);
+class MyApp extends StatefulWidget {
+  const MyApp({super.key});
+
+  @override
+  _MyAppState createState() => _MyAppState();
+}
+
+class _MyAppState extends State<MyApp> {
+  late Widget _initialScreen;
+
+  @override
+  void initState() {
+    super.initState();
+    checkUserAuthentication();
+  }
+
+  void checkUserAuthentication() {
+    final user = Supabase.instance.client.auth.currentUser;
+
+    setState(() {
+      _initialScreen = user == null ? const OnboardingScreen() : const MainNavigationScreen();
+    });
+
+    Supabase.instance.client.auth.onAuthStateChange.listen((event) {
+      if (event.session == null) {
+        setState(() {
+          _initialScreen = const OnboardingScreen();
+        });
+      } else {
+        setState(() {
+          _initialScreen = const MainNavigationScreen();
+        });
+      }
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -42,9 +75,8 @@ class MyApp extends StatelessWidget {
         colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
         useMaterial3: true,
       ),
-      initialRoute: '/',
+      home: _initialScreen,
       routes: {
-        '/': (context) => const OnboardingScreen(),
         '/login': (context) => LoginScreen(),
         '/home': (context) => const MainNavigationScreen(),
         '/post': (context) => const PostScreen(),
@@ -57,7 +89,7 @@ class MyApp extends StatelessWidget {
 }
 
 class MainNavigationScreen extends StatefulWidget {
-  const MainNavigationScreen({Key? key}) : super(key: key);
+  const MainNavigationScreen({super.key});
 
   @override
   _MainNavigationScreenState createState() => _MainNavigationScreenState();
