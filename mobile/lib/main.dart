@@ -4,6 +4,7 @@ import 'package:permission_handler/permission_handler.dart';
 import 'screens/onboarding_screen.dart';
 import 'screens/login_screen.dart';
 import 'screens/home_screen.dart';
+import 'screens/register_screen.dart';
 import 'screens/search_screen.dart';
 import 'screens/post_screen.dart';
 import 'screens/notifications_screen.dart';
@@ -51,6 +52,7 @@ class MyApp extends StatelessWidget {
         '/post': (context) => const PostScreen(),
         '/notifications': (context) => const NotificationsScreen(),
         '/profile': (context) => const ProfileScreen(),
+        '/register': (context) => const RegisterScreen(),
       },
     );
   }
