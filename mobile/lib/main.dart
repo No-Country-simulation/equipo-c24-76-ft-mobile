@@ -4,17 +4,17 @@ import 'package:permission_handler/permission_handler.dart';
 import 'screens/onboarding_screen.dart';
 import 'screens/login_screen.dart';
 import 'screens/home_screen.dart';
+import 'screens/register_screen.dart';
 import 'screens/search_screen.dart';
 import 'screens/post_screen.dart';
 import 'screens/notifications_screen.dart';
 import 'screens/profile_screen.dart';
-
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
   await Supabase.initialize(
-    url: 'https://pxplkoteuxwgnixmppum.supabase.co', 
-    anonKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InB4cGxrb3RldXh3Z25peG1wcHVtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDAwMjMxNjcsImV4cCI6MjA1NTU5OTE2N30.ADpeeAE7XsK1ZbmIhFZggEzZIJE7aIZPQ-_lB1ln6_U', 
+    url: 'https://pxplkoteuxwgnixmppum.supabase.co',
+    anonKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InB4cGxrb3RldXh3Z25peG1wcHVtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDAwMjMxNjcsImV4cCI6MjA1NTU5OTE2N30.ADpeeAE7XsK1ZbmIhFZggEzZIJE7aIZPQ-_lB1ln6_U',
   );
 
   await requestPermissions();
@@ -30,41 +30,8 @@ Future<void> requestPermissions() async {
   ].request();
 }
 
-class MyApp extends StatefulWidget {
+class MyApp extends StatelessWidget {
   const MyApp({super.key});
-
-  @override
-  _MyAppState createState() => _MyAppState();
-}
-
-class _MyAppState extends State<MyApp> {
-  late Widget _initialScreen;
-
-  @override
-  void initState() {
-    super.initState();
-    checkUserAuthentication();
-  }
-
-  void checkUserAuthentication() {
-    final user = Supabase.instance.client.auth.currentUser;
-
-    setState(() {
-      _initialScreen = user == null ? const OnboardingScreen() : const MainNavigationScreen();
-    });
-
-    Supabase.instance.client.auth.onAuthStateChange.listen((event) {
-      if (event.session == null) {
-        setState(() {
-          _initialScreen = const OnboardingScreen();
-        });
-      } else {
-        setState(() {
-          _initialScreen = const MainNavigationScreen();
-        });
-      }
-    });
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -75,19 +42,36 @@ class _MyAppState extends State<MyApp> {
         colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
         useMaterial3: true,
       ),
-      home: _initialScreen,
+      initialRoute: '/',
       routes: {
-        '/login': (context) => LoginScreen(),
+        '/': (context) => const AuthCheck(),
+        '/onboarding': (context) => const OnboardingScreen(),
+        '/login': (context) => const LoginScreen(),
         '/home': (context) => const MainNavigationScreen(),
-        '/post': (context) => const PostScreen(),
         '/search': (context) => const SearchScreen(),
+        '/post': (context) => const PostScreen(),
         '/notifications': (context) => const NotificationsScreen(),
         '/profile': (context) => const ProfileScreen(),
+        '/register': (context) => const RegisterScreen(),
       },
     );
   }
 }
 
+class AuthCheck extends StatelessWidget {
+  const AuthCheck({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    final session = Supabase.instance.client.auth.currentSession;
+
+    if (session != null) {
+      return const MainNavigationScreen(); // Usuario autenticado, va a inicio
+    } else {
+      return const OnboardingScreen(); // Usuario no autenticado, va a onboarding
+    }
+  }
+}
 class MainNavigationScreen extends StatefulWidget {
   const MainNavigationScreen({super.key});
 
@@ -97,7 +81,7 @@ class MainNavigationScreen extends StatefulWidget {
 
 class _MainNavigationScreenState extends State<MainNavigationScreen> {
   int _selectedIndex = 0;
-  
+
   final List<Widget> _screens = [
     const HomeScreen(),
     const SearchScreen(),
