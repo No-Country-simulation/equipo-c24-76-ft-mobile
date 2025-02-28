@@ -39,39 +39,66 @@ class _PostScreenState extends State<PostScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Nueva Publicación'),
+        title: const Text('Nueva Publicación', style: TextStyle(fontWeight: FontWeight.bold)),
         actions: [
           TextButton(
             onPressed: _publishPost,
-            child: const Text('Publicar'),
+            child: const Text('Publicar', style: TextStyle(color: Colors.white)),
           ),
         ],
+        backgroundColor: Colors.green[600],  // Verde más suave
       ),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
         child: Column(
           children: [
-            TextField(
-              controller: _contentController,
-              maxLength: 280,
-              maxLines: 5,
-              decoration: const InputDecoration(
-                hintText: '¿Qué estás pensando?',
-                border: OutlineInputBorder(),
+            Container(
+              decoration: BoxDecoration(
+                color: Color(0xFFF5F5DC),  // Beige suave
+                borderRadius: BorderRadius.circular(12),
+              ),
+              padding: const EdgeInsets.all(12),
+              child: TextField(
+                controller: _contentController,
+                maxLength: 280,
+                maxLines: 5,
+                decoration: const InputDecoration(
+                  hintText: '¿Qué estás pensando?',
+                  border: InputBorder.none,
+                ),
+                style: TextStyle(fontSize: 16, color: const Color.fromARGB(221, 22, 74, 21)),
               ),
             ),
             const SizedBox(height: 16),
             if (_imageFile != null)
-              Image.file(
-                _imageFile!,
-                height: 200,
-                width: double.infinity,
-                fit: BoxFit.cover,
+              ClipRRect(
+                borderRadius: BorderRadius.circular(12),
+                child: Image.file(
+                  _imageFile!,
+                  height: 200,
+                  width: double.infinity,
+                  fit: BoxFit.cover,
+                ),
               ),
-            ElevatedButton.icon(
+            const SizedBox(height: 10),
+            TextButton(
               onPressed: _pickImage,
-              icon: const Icon(Icons.image),
-              label: const Text('Agregar imagen'),
+              style: TextButton.styleFrom(
+                backgroundColor: Colors.green[400], // Verde suave
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(20),
+                ),
+                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                side: BorderSide(color: Colors.green[600]!),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: const [
+                  Icon(Icons.image, color: Colors.white),
+                  SizedBox(width: 8),
+                  Text('Añadir imagen', style: TextStyle(color: Colors.white, fontSize: 16)),
+                ],
+              ),
             ),
           ],
         ),
