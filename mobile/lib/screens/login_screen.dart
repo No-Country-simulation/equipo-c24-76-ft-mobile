@@ -35,27 +35,7 @@ class _LoginScreenState extends State<LoginScreen> {
     }
   }
 
-  /// 🔹 Registrar un nuevo usuario con email y contraseña
-  Future<void> _signUp() async {
-    if (!_formKey.currentState!.validate()) return;
-
-    setState(() => _isLoading = true);
-
-    try {
-      final AuthResponse res = await supabase.auth.signUp(
-        email: _emailController.text.trim(),
-        password: _passwordController.text.trim(),
-      );
-
-      if (res.user != null) {
-        _showSuccess("Registro exitoso. Verifica tu correo electrónico.");
-      }
-    } on AuthException catch (e) {
-      _showError(e.message);
-    } finally {
-      setState(() => _isLoading = false);
-    }
-  }
+ 
 
   /// 🔹 Iniciar sesión con Google
   Future<void> _signInWithGoogle() async {
