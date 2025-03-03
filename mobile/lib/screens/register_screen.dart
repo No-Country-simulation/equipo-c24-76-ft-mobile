@@ -11,23 +11,21 @@ class RegisterScreen extends StatefulWidget {
 class _RegisterScreenState extends State<RegisterScreen> {
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
+ 
   bool _isLoading = false;
   final _formKey = GlobalKey<FormState>();
 
   @override
   void initState() {
     super.initState();
-    _authListener(); // 🔹 Escuchar cambios de autenticación
+    _authListener();
   }
 
   void _authListener() {
     final supabase = Supabase.instance.client;
-
     supabase.auth.onAuthStateChange.listen((data) {
       final AuthChangeEvent event = data.event;
-
       if (event == AuthChangeEvent.signedIn) {
-        // 🔹 Si el usuario confirma el email y se loguea, redirigirlo
         Navigator.pushReplacementNamed(context, '/home');
       }
     });
@@ -35,7 +33,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
   Future<void> _register() async {
     if (!_formKey.currentState!.validate()) return;
-
     setState(() => _isLoading = true);
 
     try {
@@ -43,10 +40,12 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
       final response = await supabase.auth.signUp(
         email: _emailController.text.trim(),
-        password: _passwordController.text,
+        password: _passwordController.text.trim(),
+      
       );
 
-      if (response.user != null) {
+      final user = response.user;
+      if (user != null) {
         _showMessage("Registro exitoso.", Colors.green);
       }
     } on AuthException catch (e) {
@@ -59,6 +58,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
   }
 
   void _showMessage(String message, Color color) {
+    if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(message, style: const TextStyle(color: Colors.white)),
@@ -78,6 +78,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
+          
+              const SizedBox(height: 10),
               TextFormField(
                 controller: _emailController,
                 keyboardType: TextInputType.emailAddress,
