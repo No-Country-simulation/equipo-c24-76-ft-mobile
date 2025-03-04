@@ -81,38 +81,51 @@ Future<void> _loadFollowingStatus() async {
   }
 
   Future<void> _followUser(String userId) async {
-    final currentId = currentUserId;
-    if (currentId == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Error: Usuario no autenticado')),
-      );
-      return;
-    }
-
-    setState(() => _followingStatus[userId] = !(_followingStatus[userId] ?? false));
-
-    try {
-      if (_followingStatus[userId] ?? false) {
-        // Seguir usuario
-        await supabase.from('followers').insert({
-          'follower_id': currentId,
-          'following_id': userId,
-        });
-        _showSnackBar('Ahora sigues a este usuario');
-      } else {
-        // Dejar de seguir
-        await supabase
-            .from('followers')
-            .delete()
-            .eq('follower_id', currentId)
-            .eq('following_id', userId);
-        _showSnackBar('Dejaste de seguir a este usuario');
-      }
-    } catch (error) {
-      setState(() => _followingStatus[userId] = !(_followingStatus[userId] ?? false));
-      _showSnackBar('Error al actualizar seguimiento');
-    }
+  final currentId = currentUserId;
+  if (currentId == null) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Error: Usuario no autenticado')),
+    );
+    return;
   }
+
+  setState(() => _followingStatus[userId] = !(_followingStatus[userId] ?? false));
+
+  try {
+    if (_followingStatus[userId] ?? false) {
+      // Seguir usuario
+      await supabase.from('followers').insert({
+        'follower_id': currentId,
+        'following_id': userId,
+      });
+
+      // Agregar la notificación
+await supabase.from('notifications').insert({
+  'user_id': userId,  // Cambié receiver_id por user_id
+  'sender_id': currentId,
+  'type': 'follow',
+  'created_at': DateTime.now().toUtc().toIso8601String(),
+  'read': false,  // Agregué un valor para la columna read
+});
+
+
+      _showSnackBar('Ahora sigues a este usuario');
+    } else {
+      // Dejar de seguir
+      await supabase
+          .from('followers')
+          .delete()
+          .eq('follower_id', currentId)
+          .eq('following_id', userId);
+
+      _showSnackBar('Dejaste de seguir a este usuario');
+    }
+  } catch (error) {
+    setState(() => _followingStatus[userId] = !(_followingStatus[userId] ?? false));
+    _showSnackBar('Error al actualizar seguimiento');
+  }
+}
+
 
   void _showSnackBar(String message) {
     ScaffoldMessenger.of(context).showSnackBar(

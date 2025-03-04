@@ -45,6 +45,7 @@ dependencies:
   intl: ^0.20.2
   provider: ^6.1.2
   permission_handler: ^11.4.0
+  timeago: ^3.2.2
 
 dev_dependencies:
   flutter_test:
