@@ -71,18 +71,18 @@ class _LoginScreenState extends State<LoginScreen> {
   }
 
   /// 🔹 Iniciar sesión con Facebook
-  Future<void> _signInWithFacebook() async {
-    try {
-      await supabase.auth.signInWithOAuth(
-  OAuthProvider.facebook,
-  redirectTo: 'https://gpo1ketouwpxmjopmu.supabase.co/auth/v1/callback',
-);
-
-      Navigator.pushReplacementNamed(context, '/home');
-    } on AuthException catch (e) {
-      _showError(e.message);
-    }
+Future<void> _signInWithFacebook() async {
+  try {
+    await supabase.auth.signInWithOAuth(
+      OAuthProvider.facebook,
+      redirectTo: 'https://gpo1ketouwpxmjopmu.supabase.co/auth/v1/callback',
+    );
+    Navigator.pushReplacementNamed(context, '/home');
+  } on AuthException catch (e) {
+    _showError(e.message);
   }
+}
+
 
   /// 🔹 Mostrar errores
   void _showError(String message) {
