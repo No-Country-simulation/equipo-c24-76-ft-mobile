@@ -74,6 +74,7 @@ class _LoginScreenState extends State<LoginScreen> {
 Future<void> _signInWithFacebook() async {
   try {
     await supabase.auth.signInWithOAuth(
+    
       OAuthProvider.facebook,
       redirectTo: 'https://gpo1ketouwpxmjopmu.supabase.co/auth/v1/callback',
     );
