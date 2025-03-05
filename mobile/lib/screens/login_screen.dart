@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 class LoginScreen extends StatefulWidget {
@@ -60,10 +59,24 @@ class _LoginScreenState extends State<LoginScreen> {
 
   /// 🔹 Iniciar sesión con Google
   Future<void> _signInWithGoogle() async {
+    try {
+      await supabase.auth.signInWithOAuth(
+        OAuthProvider.google,
+        redirectTo: 'io.supabase.flutter://login-callback',
+      );
+      Navigator.pushReplacementNamed(context, '/home');
+    } on AuthException catch (e) {
+      _showError(e.message);
+    }
+  }
+
+  /// 🔹 Iniciar sesión con Facebook
+Future<void> _signInWithFacebook() async {
   try {
     await supabase.auth.signInWithOAuth(
-      OAuthProvider.google,
-      redirectTo: 'io.supabase.flutter://login-callback',
+    
+      OAuthProvider.facebook,
+      redirectTo: 'https://gpo1ketouwpxmjopmu.supabase.co/auth/v1/callback',
     );
     Navigator.pushReplacementNamed(context, '/home');
   } on AuthException catch (e) {
@@ -72,31 +85,24 @@ class _LoginScreenState extends State<LoginScreen> {
 }
 
 
-  /// 🔹 Iniciar sesión con Facebook
-  Future<void> _signInWithFacebook() async {
-    try {
-      await supabase.auth.signInWithOAuth(OAuthProvider.facebook);
-
-      Navigator.pushReplacementNamed(context, '/home');
-    } on AuthException catch (e) {
-      _showError(e.message);
-    }
-  }
-
   /// 🔹 Mostrar errores
   void _showError(String message) {
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-      content: Text(message, style: TextStyle(color: Colors.white)),
-      backgroundColor: Colors.red,
-    ));
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message, style: TextStyle(color: Colors.white)),
+        backgroundColor: Colors.red,
+      ),
+    );
   }
 
   /// 🔹 Mostrar éxito
   void _showSuccess(String message) {
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-      content: Text(message, style: TextStyle(color: Colors.white)),
-      backgroundColor: Colors.green,
-    ));
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message, style: TextStyle(color: Colors.white)),
+        backgroundColor: Colors.green,
+      ),
+    );
   }
 
   @override
@@ -171,59 +177,66 @@ class _LoginScreenState extends State<LoginScreen> {
                         _isLoading
                             ? CircularProgressIndicator()
                             : Column(
-                                children: [
-                                  ElevatedButton(
-                                    onPressed: _login,
-                                    style: ElevatedButton.styleFrom(
-                                      backgroundColor: Colors.blue.shade900,
-                                      shape: RoundedRectangleBorder(
-                                        borderRadius: BorderRadius.circular(10),
-                                      ),
-                                      padding: EdgeInsets.symmetric(
-                                          vertical: 12, horizontal: 80),
+                              children: [
+                                ElevatedButton(
+                                  onPressed: _login,
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: Colors.blue.shade900,
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(10),
                                     ),
-                                    child: Text(
-                                      "Ingresar",
-                                      style: TextStyle(
-                                        fontSize: 18,
-                                        color: Colors.white,
-                                      ),
+                                    padding: EdgeInsets.symmetric(
+                                      vertical: 12,
+                                      horizontal: 80,
                                     ),
                                   ),
-                                  SizedBox(height: 10),
-                                  OutlinedButton(
-                                    onPressed: _signUp,
-                                    style: OutlinedButton.styleFrom(
-                                      padding: EdgeInsets.symmetric(
-                                          vertical: 12, horizontal: 80),
-                                    ),
-                                    child: Text(
-                                      "Registrarse",
-                                      style: TextStyle(fontSize: 18),
+                                  child: Text(
+                                    "Ingresar",
+                                    style: TextStyle(
+                                      fontSize: 18,
+                                      color: Colors.white,
                                     ),
                                   ),
-                                  SizedBox(height: 10),
-                                  OutlinedButton.icon(
-                                    onPressed: _signInWithGoogle,
-                                    icon: Icon(Icons.login, color: Colors.red),
-                                    label: Text("Ingresar con Google"),
-                                    style: OutlinedButton.styleFrom(
-                                      padding: EdgeInsets.symmetric(
-                                          vertical: 12, horizontal: 20),
+                                ),
+                            
+                                SizedBox(height: 10),
+                                OutlinedButton.icon(
+                                  onPressed: _signInWithGoogle,
+                                  icon: Icon(Icons.login, color: Colors.red),
+                                  label: Text("Ingresar con Google"),
+                                  style: OutlinedButton.styleFrom(
+                                    padding: EdgeInsets.symmetric(
+                                      vertical: 12,
+                                      horizontal: 20,
                                     ),
                                   ),
-                                  SizedBox(height: 10),
-                                  OutlinedButton.icon(
-                                    onPressed: _signInWithFacebook,
-                                    icon: Icon(Icons.facebook, color: Colors.blue),
-                                    label: Text("Ingresar con Facebook"),
-                                    style: OutlinedButton.styleFrom(
-                                      padding: EdgeInsets.symmetric(
-                                          vertical: 12, horizontal: 20),
+                                ),
+                                SizedBox(height: 10),
+                                OutlinedButton.icon(
+                                  onPressed: _signInWithFacebook,
+                                  icon: Icon(
+                                    Icons.facebook,
+                                    color: Colors.blue,
+                                  ),
+                                  label: Text("Ingresar con Facebook"),
+                                  style: OutlinedButton.styleFrom(
+                                    padding: EdgeInsets.symmetric(
+                                      vertical: 12,
+                                      horizontal: 20,
                                     ),
                                   ),
-                                ],
-                              ),
+                                ),
+                              ],
+                            ),
+                        TextButton(
+                          onPressed: () {
+                            Navigator.pushNamed(context, '/register');
+                          },
+                          child: Text(
+                            "¿No tienes cuenta? Regístrate aquí",
+                            style: TextStyle(color: Colors.blue.shade900),
+                          ),
+                        ),
                         SizedBox(height: 10),
                         TextButton(
                           onPressed: () {},
