@@ -27,14 +27,17 @@ Future<void> requestPermissions() async {
     Permission.camera,
     Permission.storage,
     Permission.location,
+    
   ].request();
 }
 
 class MyApp extends StatelessWidget {
+
   const MyApp({super.key});
 
   @override
   Widget build(BuildContext context) {
+
     return MaterialApp(
       debugShowCheckedModeBanner: false,
       title: 'Red Social de Viajes',
@@ -53,6 +56,7 @@ class MyApp extends StatelessWidget {
         '/notifications': (context) => const NotificationsScreen(),
         '/profile': (context) => const ProfileScreen(),
         '/register': (context) => const RegisterScreen(),
+
       },
     );
   }
