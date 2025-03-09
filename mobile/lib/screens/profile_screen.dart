@@ -10,11 +10,12 @@ class ProfileScreen extends StatefulWidget {
 
 class _ProfileScreenState extends State<ProfileScreen> {
   final supabase = Supabase.instance.client;
+
   String username = "Cargando...";
   String bio = "Cargando...";
-  String email = "";
+  String avatarUrl = "https://via.placeholder.com/150"; // Valor por defecto
   bool isLoading = true;
-  bool showSettings = false; // Para alternar entre perfil y configuración
+  bool showSettings = false;
 
   @override
   void initState() {
@@ -30,33 +31,35 @@ class _ProfileScreenState extends State<ProfileScreen> {
         return;
       }
 
-      final response = await supabase
+      // Selecciona 'username, bio, avatar_url' de la tabla 'users'
+      final data = await supabase
           .from('users')
-          .select('username, bio, email')
+          .select('username, bio, avatar_url')
           .eq('id', user.id)
           .single();
 
       setState(() {
-        username = response['username'] ?? "Sin nombre";
-        bio = response['bio'] ?? "Sin biografía";
-        email = response['email'] ?? "";
+        username = data['username'] ?? "Sin nombre";
+        bio = data['bio'] ?? "Sin biografía";
+        avatarUrl = data['avatar_url'] ?? "https://via.placeholder.com/150";
         isLoading = false;
       });
     } catch (error) {
       print("Error cargando el perfil: $error");
       setState(() {
         username = "Error";
-        bio = "No se pudo cargar la bio";
+        bio = "No se pudo cargar la biografía";
         isLoading = false;
       });
     }
   }
 
   Future<void> _editProfile() async {
-    TextEditingController usernameController = TextEditingController(text: username);
-    TextEditingController bioController = TextEditingController(text: bio);
+    final usernameController = TextEditingController(text: username);
+    final bioController = TextEditingController(text: bio);
+    final avatarController = TextEditingController(text: avatarUrl);
 
-    showDialog(
+    await showDialog(
       context: context,
       builder: (context) {
         return AlertDialog(
@@ -72,6 +75,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 controller: bioController,
                 decoration: const InputDecoration(labelText: "Biografía"),
               ),
+              TextField(
+                controller: avatarController,
+                decoration: const InputDecoration(labelText: "URL del avatar"),
+              ),
             ],
           ),
           actions: [
@@ -84,16 +91,24 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 final user = supabase.auth.currentUser;
                 if (user == null) return;
 
-                await supabase.from('users').update({
-                  'username': usernameController.text,
-                  'bio': bioController.text,
-                }).eq('id', user.id);
+                try {
+                  await supabase.from('users').update({
+                    'username': usernameController.text.trim(),
+                    'bio': bioController.text.trim(),
+                    'avatar_url': avatarController.text.trim(),
+                  }).eq('id', user.id);
 
-                setState(() {
-                  username = usernameController.text;
-                  bio = bioController.text;
-                });
-
+                  setState(() {
+                    username = usernameController.text.trim();
+                    bio = bioController.text.trim();
+                    avatarUrl = avatarController.text.trim();
+                  });
+                } catch (e) {
+                  ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                    content: Text("Error al actualizar: $e"),
+                    backgroundColor: Colors.red,
+                  ));
+                }
                 Navigator.pop(context);
               },
               child: const Text("Guardar"),
@@ -141,9 +156,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
             padding: const EdgeInsets.all(16),
             child: Column(
               children: [
-                const CircleAvatar(
+                CircleAvatar(
                   radius: 50,
-                  backgroundImage: NetworkImage('https://via.placeholder.com/150'),
+                  backgroundImage: NetworkImage(avatarUrl),
                 ),
                 const SizedBox(height: 16),
                 Text(
@@ -154,11 +169,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 Text(
                   bio,
                   style: Theme.of(context).textTheme.bodyMedium,
-                ),
-                const SizedBox(height: 16),
-                Text(
-                  email,
-                  style: Theme.of(context).textTheme.bodySmall,
                 ),
                 const SizedBox(height: 16),
                 ElevatedButton(
