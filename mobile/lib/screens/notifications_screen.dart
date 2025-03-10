@@ -80,7 +80,7 @@ Stream<List<Map<String, dynamic>>> _getNotificationsStream() {
       case 'follow':
         return '📌 ${notification['sender_name']} te ha seguido';
       case 'like':
-        return '❤️ ${notification['sender_name']} le dio me gusta a tu post';
+        return '❤️ ${notification['username']} le dio me gusta a tu post';
       case 'comment':
         return '💬 ${notification['sender_name']} comentó tu post';
       default:
