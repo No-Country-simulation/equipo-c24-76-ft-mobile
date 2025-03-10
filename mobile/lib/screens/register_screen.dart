@@ -1,5 +1,8 @@
+import 'dart:io';
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:image_picker/image_picker.dart';
 
 class RegisterScreen extends StatefulWidget {
   const RegisterScreen({Key? key}) : super(key: key);
@@ -15,7 +18,9 @@ class _RegisterScreenState extends State<RegisterScreen> {
   final _passwordController = TextEditingController();
   final _usernameController = TextEditingController();
   final _bioController = TextEditingController();
-  final _avatarController = TextEditingController();
+
+  File? _selectedImage;
+  final ImagePicker _picker = ImagePicker();
 
   bool _isLoading = false;
   final _formKey = GlobalKey<FormState>();
@@ -26,8 +31,35 @@ class _RegisterScreenState extends State<RegisterScreen> {
     _passwordController.dispose();
     _usernameController.dispose();
     _bioController.dispose();
-    _avatarController.dispose();
     super.dispose();
+  }
+
+  // Método para seleccionar imagen
+  Future<void> _pickImage() async {
+    final XFile? image = await _picker.pickImage(
+      source: ImageSource.gallery,
+      maxWidth: 400, 
+      maxHeight: 400,
+      imageQuality: 70,
+    );
+    if (image != null) {
+      setState(() {
+        _selectedImage = File(image.path);
+      });
+    }
+  }
+
+  // Método para convertir la imagen a base64
+  Future<String?> _imageToBase64() async {
+    if (_selectedImage == null) return null;
+
+    try {
+      final bytes = await _selectedImage!.readAsBytes();
+      return 'data:image/jpeg;base64,${base64Encode(bytes)}';
+    } catch (e) {
+      print("Error al convertir imagen: $e");
+      return null;
+    }
   }
 
   Future<void> _register() async {
@@ -43,38 +75,49 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
       final user = response.user;
       if (user != null) {
-        // 2. Inserta datos adicionales en la tabla 'users'
-        final upsertResponse = await supabase.from('users').upsert({
-          'id': user.id, // Asume que esta columna es la PK
-          'username': _usernameController.text.trim(),
-          'bio': _bioController.text.trim(),
-          'avatar_url': _avatarController.text.trim(), // Usa "avatar_url"
-          'email': user.email,
-        });
+        // 2. Convertir imagen a base64 si fue seleccionada
+        String? avatarBase64;
+        if (_selectedImage != null) {
+          avatarBase64 = await _imageToBase64();
+        }
 
-        if (upsertResponse.error != null) {
-          ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-            content: Text("Error al guardar datos: ${upsertResponse.error!.message}",
-                style: const TextStyle(color: Colors.white)),
-            backgroundColor: Colors.red,
-          ));
-        } else {
+        // 3. Inserta datos adicionales en la tabla 'users'
+        try {
+          final userData = {
+            'id': user.id,
+            'username': _usernameController.text.trim(),
+            'bio': _bioController.text.trim(),
+            'email': user.email,
+          };
+          
+          // Solo agregamos avatar_url si tenemos una imagen
+          if (avatarBase64 != null) {
+            userData['avatar_url'] = avatarBase64;
+          }
+          
+          await supabase.from('users').upsert([userData]);
+          
           ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
             content: Text("Registro exitoso"),
             backgroundColor: Colors.green,
+          ));
+
+          Navigator.pushReplacementNamed(context, '/login');
+        } catch (error) {
+          ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+            content: Text("Error al guardar datos: $error"),
+            backgroundColor: Colors.red,
           ));
         }
       }
     } on AuthException catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-        content: Text("Error de autenticación: ${e.message}",
-            style: const TextStyle(color: Colors.white)),
+        content: Text("Error de autenticación: ${e.message}"),
         backgroundColor: Colors.red,
       ));
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-        content: Text("Error inesperado: $e",
-            style: const TextStyle(color: Colors.white)),
+        content: Text("Error inesperado: $e"),
         backgroundColor: Colors.red,
       ));
     } finally {
@@ -107,20 +150,48 @@ class _RegisterScreenState extends State<RegisterScreen> {
                 controller: _bioController,
                 decoration: const InputDecoration(labelText: "Biografía (opcional)"),
               ),
-              const SizedBox(height: 10),
-              TextFormField(
-                controller: _avatarController,
-                decoration: const InputDecoration(labelText: "URL del avatar (opcional)"),
-                validator: (value) {
-                  if (value != null && value.isNotEmpty) {
-                    if (!RegExp(r'^https?:\/\/').hasMatch(value)) {
-                      return "Ingrese una URL válida";
-                    }
-                  }
-                  return null;
-                },
+              const SizedBox(height: 20),
+              
+              // Widget para seleccionar imagen
+              Center(
+                child: Column(
+                  children: [
+                    _selectedImage != null
+                        ? Container(
+                            width: 120,
+                            height: 120,
+                            decoration: BoxDecoration(
+                              shape: BoxShape.circle,
+                              image: DecorationImage(
+                                fit: BoxFit.cover,
+                                image: FileImage(_selectedImage!),
+                              ),
+                            ),
+                          )
+                        : Container(
+                            width: 120,
+                            height: 120,
+                            decoration: const BoxDecoration(
+                              shape: BoxShape.circle,
+                              color: Colors.grey,
+                            ),
+                            child: const Icon(
+                              Icons.person,
+                              size: 80,
+                              color: Colors.white,
+                            ),
+                          ),
+                    const SizedBox(height: 10),
+                    ElevatedButton.icon(
+                      onPressed: _pickImage,
+                      icon: const Icon(Icons.image),
+                      label: const Text("Seleccionar avatar"),
+                    ),
+                  ],
+                ),
               ),
-              const SizedBox(height: 10),
+              
+              const SizedBox(height: 20),
               TextFormField(
                 controller: _emailController,
                 decoration: const InputDecoration(labelText: "Correo electrónico"),
