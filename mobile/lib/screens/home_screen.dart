@@ -647,25 +647,7 @@ if (post['media_url'] != null)
                               padding: const EdgeInsets.all(16),
                               child: Text(post['content']),
                             ),
-                            Row(
-                              mainAxisAlignment: MainAxisAlignment.start,
-                              children: [
-                                IconButton(
-                                  icon: Icon(
-                                    isLiked ? Icons.favorite : Icons.favorite_border,
-                                    color: isLiked ? Colors.red : null,
-                                  ),
-                                 onPressed: () => _toggleLike(post['id'].toString()),
-
-                                ),
-                                Text('${post['likes'][0]['count'] ?? 0}'),
-                                IconButton(
-                                  icon: const Icon(Icons.comment_outlined),
-                                  onPressed: () => _showComments(context, post['id'].toString()),
-                                ),
-                                Text('${post['comments'][0]['count'] ?? 0}'),
-                              ],
-                            ),
+                           
                           ],
                         ),
                       );
