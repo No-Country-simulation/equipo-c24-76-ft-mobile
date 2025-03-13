@@ -1,3 +1,4 @@
+import 'dart:convert';  // Asegúrate de importar este paquete
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:timeago/timeago.dart' as timeago;
@@ -18,11 +19,11 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
       appBar: AppBar(
         title: const Text('Notificaciones'),
       ),
-      body: StreamBuilder<List<Map<String, dynamic>>>(
+      body: StreamBuilder<List<Map<String, dynamic>>>(  // StreamBuilder para escuchar cambios
         stream: _getNotificationsStream(),
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
-            return const Center(child: CircularProgressIndicator());
+            return const Center(child: CircularProgressIndicator());  // Cargando
           }
 
           if (snapshot.hasError) {
@@ -39,11 +40,21 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
             itemCount: notifications.length,
             itemBuilder: (context, index) {
               final notification = notifications[index];
-              return ListTile(
-               leading: CircleAvatar(
-  backgroundImage: NetworkImage(notification['sender_avatar'] ?? 'https://via.placeholder.com/150'),
-),
+              final senderAvatar = notification['sender_avatar'];  // Avatar del usuario
+              final senderId = notification['sender_id'];  // ID del usuario que envió la notificación
 
+              return ListTile(
+                leading: GestureDetector(
+                  onTap: () {
+                    // Al hacer click en el avatar, navegar al perfil del usuario
+                    Navigator.pushNamed(context, '/profile', arguments: senderId);
+                  },
+                  child: CircleAvatar(
+                    backgroundImage: senderAvatar != null && senderAvatar.isNotEmpty
+                        ? NetworkImage(senderAvatar)  // Si existe el avatar, se muestra
+                        : const NetworkImage('https://via.placeholder.com/150'),  // Imagen por defecto si no hay avatar
+                  ),
+                ),
                 title: Text(_getNotificationText(notification)),
                 subtitle: Text(timeago.format(DateTime.parse(notification['created_at']))),
                 onTap: () {
@@ -56,42 +67,48 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
       ),
     );
   }
-Stream<List<Map<String, dynamic>>> _getNotificationsStream() {
-  final userId = supabase.auth.currentUser?.id;
-  
-  if (userId == null) {
-    return const Stream.empty();
+
+  // Función para obtener las notificaciones con datos enriquecidos (nombre y avatar del usuario)
+  Stream<List<Map<String, dynamic>>> _getNotificationsStream() {
+    final userId = supabase.auth.currentUser?.id;
+
+    if (userId == null) {
+      return const Stream.empty();
+    }
+
+    return supabase
+        .from('notifications')
+        .stream(primaryKey: ['id'])
+        .eq('user_id', userId)
+        .order('created_at', ascending: false)
+        .map((data) async {
+          final List<Map<String, dynamic>> enrichedData = [];
+          for (var row in data) {
+            // Obtener el sender_name y avatar_url desde la tabla users usando sender_id
+            final sender = await supabase
+                .from('users')
+                .select('username, avatar_url') // Obtener el nombre de usuario y avatar
+                .eq('id', row['sender_id'])
+                .maybeSingle();
+
+            // Asignar el nombre y el avatar a los datos de la notificación
+            row['sender_name'] = sender?['username'] ?? 'Usuario desconocido';
+            row['sender_avatar'] = sender?['avatar_url'] ?? '';  // Aquí asignamos el avatar_url
+            enrichedData.add(row);
+          }
+          return enrichedData;
+        }).asyncMap((event) async {
+          return await event;
+        });
   }
 
-  return supabase
-      .from('notifications')
-      .stream(primaryKey: ['id'])
-      .eq('user_id', userId)
-      .order('created_at', ascending: false)
-      .map((data) async {
-        final List<Map<String, dynamic>> enrichedData = [];
-        for (var row in data) {
-          // Obtener el sender_name desde la tabla users usando sender_id
-          final sender = await supabase
-              .from('users')
-              .select('username')
-              .eq('id', row['sender_id'])
-              .maybeSingle();
-          
-          row['sender_name'] = sender?['username'] ?? 'Usuario desconocido';
-          enrichedData.add(row);
-        }
-        return enrichedData;
-      }).asyncMap((event) async => await event);
-}
-
-  /// 🔥 Función que genera el texto de la notificación basado en el tipo
+  // Función que devuelve el texto de la notificación según el tipo
   String _getNotificationText(Map<String, dynamic> notification) {
     switch (notification['type']) {
       case 'follow':
         return '📌 ${notification['sender_name']} te ha seguido';
       case 'like':
-        return '❤️ ${notification['username']} le dio me gusta a tu post';
+        return '❤️ ${notification['sender_name']} le dio me gusta a tu post';
       case 'comment':
         return '💬 ${notification['sender_name']} comentó tu post';
       default:
@@ -99,7 +116,7 @@ Stream<List<Map<String, dynamic>>> _getNotificationsStream() {
     }
   }
 
-  /// 🔥 Función para manejar la navegación según el tipo de notificación
+  // Función para manejar la navegación según el tipo de notificación
   void _handleNotificationTap(Map<String, dynamic> notification) {
     if (notification['type'] == 'follow') {
       // Navegar al perfil del usuario que sigue

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'dart:convert'; // Esto es necesario para usar base64Decode
 
 class SearchScreen extends StatefulWidget {
   const SearchScreen({super.key});
@@ -205,15 +206,18 @@ await supabase.from('notifications').insert({
                       ),
                       child: ListTile(
                         contentPadding: const EdgeInsets.all(12),
-                       leading: CircleAvatar(
+ leading: CircleAvatar(
   radius: 30,
   backgroundImage: user['avatar_url'] != null && user['avatar_url'].isNotEmpty
-      ? NetworkImage(user['avatar_url'])
+      ? user['avatar_url'].startsWith('data:image')
+          ? MemoryImage(base64Decode(user['avatar_url'].split(',').last)) // Decodificamos si es base64
+          : NetworkImage(user['avatar_url']) // Si es una URL normal, usamos NetworkImage
       : null,
   child: user['avatar_url'] == null || user['avatar_url'].isEmpty
       ? Icon(Icons.person, size: 30, color: Colors.grey)
       : null,
 ),
+
 
                         title: Text(
                           user['username'] ?? user['email'] ?? 'Usuario desconocido',
