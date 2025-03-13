@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'dart:io';
+import 'dart:convert';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 class PostScreen extends StatefulWidget {
   const PostScreen({super.key});
@@ -14,6 +16,9 @@ class _PostScreenState extends State<PostScreen> {
   File? _imageFile;
   final ImagePicker _picker = ImagePicker();
   bool _isUploading = false;
+
+  // Obtener la instancia de Supabase
+  final supabase = Supabase.instance.client;
 
   // colorcitos
   static const Color darkBlue = Color.fromRGBO(18, 38, 17, 1); // negrito
@@ -52,7 +57,18 @@ class _PostScreenState extends State<PostScreen> {
     });
   }
 
-  void _publishPost() async {
+  // Convertir imagen a base64
+  Future<String?> _imageToBase64(File imageFile) async {
+    try {
+      List<int> imageBytes = await imageFile.readAsBytes();
+      return base64Encode(imageBytes);
+    } catch (e) {
+      print('Error convirtiendo imagen a base64: $e');
+      return null;
+    }
+  }
+
+  Future<void> _publishPost() async {
     if (_contentController.text.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
@@ -63,28 +79,74 @@ class _PostScreenState extends State<PostScreen> {
       return;
     }
     
+    // Verificar si hay un usuario autenticado
+    final User? currentUser = supabase.auth.currentUser;
+    if (currentUser == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Debes iniciar sesión para publicar'),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
+    
     setState(() {
       _isUploading = true;
     });
     
-    // Simulamos una carga
-    await Future.delayed(const Duration(seconds: 2));
-    
-    // TODO: Implementar la lógica de publicación
-    
-    setState(() {
-      _isUploading = false;
-    });
-    
-    // Mostrar mensaje de éxito
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('¡Publicación realizada con éxito!'),
-        backgroundColor: olive,
-      ),
-    );
-    
-    Navigator.pop(context);
+    try {
+      // Preparar los datos para Supabase
+      Map<String, dynamic> postData = {
+        'content': _contentController.text,
+        'created_at': DateTime.now().toIso8601String(),
+        'user_id': currentUser.id, // Añadir el ID del usuario actual
+      };
+      
+      // Si hay una imagen, la convertimos a base64
+      if (_imageFile != null) {
+        String? base64Image = await _imageToBase64(_imageFile!);
+        if (base64Image != null) {
+          postData['media_url'] = base64Image;
+        }
+      }
+      
+      // Insertar en la tabla posts de Supabase
+      final response = await supabase
+          .from('post')
+          .insert(postData)
+          .select();
+      
+      // Mostrar mensaje de éxito
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('¡Publicación realizada con éxito!'),
+          backgroundColor: olive,
+        ),
+      );
+      
+      // Limpiar el formulario
+      _contentController.clear();
+      setState(() {
+        _imageFile = null;
+      });
+      
+      // Volver a la pantalla anterior
+      Navigator.pop(context);
+      
+    } catch (e) {
+      // Mostrar mensaje de error
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Error al publicar: ${e.toString()}'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    } finally {
+      setState(() {
+        _isUploading = false;
+      });
+    }
   }
 
   @override
