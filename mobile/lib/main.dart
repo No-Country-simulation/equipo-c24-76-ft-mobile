@@ -23,13 +23,13 @@ void main() async {
 }
 
 Future<void> requestPermissions() async {
-  await [
+  Map<Permission, PermissionStatus> statuses = await [
     Permission.camera,
     Permission.storage,
     Permission.location,
-    
   ].request();
 }
+
 
 class MyApp extends StatelessWidget {
 
