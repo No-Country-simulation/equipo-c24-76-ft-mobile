@@ -68,7 +68,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 likes:likes (count),
                 comments:comments (count)
               ''')
-              .or('user_id.in.(${following}),user_id.eq.${userId}')
+              .or('user_id.in.($following),user_id.eq.$userId')
               .order('created_at', ascending: false)
           : [];
 
