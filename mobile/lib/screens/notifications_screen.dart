@@ -70,7 +70,7 @@ Stream<List<Map<String, dynamic>>> _getNotificationsStream() {
       .stream(primaryKey: ['id'])
       .eq('user_id', userId)  // Aquí userId siempre será no nulo
       .order('created_at', ascending: false)
-      .map((data) => data.map((row) => row).toList());
+      .map((data) => data.map((row) => row as Map<String, dynamic>).toList());
 }
 
 

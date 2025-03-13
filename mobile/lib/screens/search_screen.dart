@@ -43,7 +43,7 @@ Future<void> _loadFollowingStatus() async {
         .select('following_id')
         .eq('follower_id', userId);
 
-    if (following is List) {
+    if (following != null && following is List) {
       setState(() {
         for (var follow in following) {
           _followingStatus[follow['following_id']] = true;
