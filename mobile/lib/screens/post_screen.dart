@@ -309,15 +309,15 @@ class _PostScreenState extends State<PostScreen> {
                           ),
                         ],
                       ),
-                      child: ClipRRect(
-                        borderRadius: BorderRadius.circular(16),
-                        child: Image.file(
-                          _imageFile!,
-                          height: 250,
-                          width: double.infinity,
-                          fit: BoxFit.cover,
-                        ),
-                      ),
+                  child: ClipRRect(
+  borderRadius: BorderRadius.circular(16),
+  child: Image.file(
+    _imageFile!,
+    height: 200, // Ajusta según el tamaño que prefieras
+    width: double.infinity,
+    fit: BoxFit.cover, // Asegura que la imagen se ajuste al tamaño especificado
+  ),
+),
                     ),
                     Positioned(
                       top: 10,
