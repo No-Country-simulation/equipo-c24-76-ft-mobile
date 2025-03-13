@@ -56,23 +56,34 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
       ),
     );
   }
-
 Stream<List<Map<String, dynamic>>> _getNotificationsStream() {
   final userId = supabase.auth.currentUser?.id;
   
   if (userId == null) {
-    // Si el usuario no está autenticado, devolvemos un stream vacío
     return const Stream.empty();
   }
 
   return supabase
       .from('notifications')
       .stream(primaryKey: ['id'])
-      .eq('user_id', userId)  // Aquí userId siempre será no nulo
+      .eq('user_id', userId)
       .order('created_at', ascending: false)
-      .map((data) => data.map((row) => row as Map<String, dynamic>).toList());
+      .map((data) async {
+        final List<Map<String, dynamic>> enrichedData = [];
+        for (var row in data) {
+          // Obtener el sender_name desde la tabla users usando sender_id
+          final sender = await supabase
+              .from('users')
+              .select('username')
+              .eq('id', row['sender_id'])
+              .maybeSingle();
+          
+          row['sender_name'] = sender?['username'] ?? 'Usuario desconocido';
+          enrichedData.add(row);
+        }
+        return enrichedData;
+      }).asyncMap((event) async => await event);
 }
-
 
   /// 🔥 Función que genera el texto de la notificación basado en el tipo
   String _getNotificationText(Map<String, dynamic> notification) {

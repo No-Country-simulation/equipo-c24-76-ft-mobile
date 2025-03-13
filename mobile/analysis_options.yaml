@@ -9,7 +9,7 @@
 # packages, and plugins designed to encourage good coding practices.
 analyzer:
   errors:
-    unused_import: ignore ignore
+    unused_import: ignore
 include: package:flutter_lints/flutter.yaml
 
 linter:

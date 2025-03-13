@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:intl/intl.dart'; // Para formatear la fecha
 import 'package:timeago/timeago.dart' as timeago;
+import 'dart:convert';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -51,65 +52,166 @@ class _HomeScreenState extends State<HomeScreen> {
     });
   }
 
-  Future<void> _loadPosts() async {
-    final userId = currentUserId;
-    if (userId == null) return;
+  Future<void> _deletePost(String postId, String postUserId) async {
+  // Verificar que el usuario actual sea el propietario del post
+  if (currentUserId != postUserId) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: const Text('Solo puedes eliminar tus propias publicaciones'),
+        backgroundColor: Colors.red,
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(10),
+        ),
+        margin: const EdgeInsets.all(8),
+      ),
+    );
+    return;
+  }
 
-    try {
-      final following = await _getFollowingQuery();
-      
-      // Primero, obtener posts de usuarios que seguimos
-      final followingPosts = following.isNotEmpty
-          ? await supabase
-              .from('post')
-              .select('''
-                *,
-                users:user_id (username, avatar_url),
-                likes:likes (count),
-                comments:comments (count)
-              ''')
-              .or('user_id.in.(${following}),user_id.eq.${userId}')
-              .order('created_at', ascending: false)
-          : [];
+  // Mostrar diálogo de confirmación
+  final confirm = await showDialog<bool>(
+    context: context,
+    builder: (context) => AlertDialog(
+      title: const Text('Eliminar publicación'),
+      content: const Text('¿Estás seguro de que quieres eliminar esta publicación? Esta acción no se puede deshacer.'),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(context, false),
+          child: const Text('Cancelar'),
+        ),
+        TextButton(
+          onPressed: () => Navigator.pop(context, true),
+          child: const Text('Eliminar', style: TextStyle(color: Colors.red)),
+        ),
+      ],
+    ),
+  );
 
-      // Obtener posts sugeridos (de usuarios que no seguimos)
-      final suggestedPosts = await supabase
-          .from('post')
-          .select('''
-            *,
-            users:user_id (username, avatar_url),
-            likes:likes (count),
-            comments:comments (count)
-          ''')
-          .not('user_id', 'in', '($following,$userId)')
-          .order('created_at', ascending: false)
-          .limit(10); // Limitamos a 10 posts sugeridos
+  if (confirm != true) return;
 
-      // Combinar los posts y marcarlos como sugeridos o no
-      final allPosts = [
-        ...List<Map<String, dynamic>>.from(followingPosts).map((post) => {
-              ...post,
-              'is_suggested': false,
-            }),
-        ...List<Map<String, dynamic>>.from(suggestedPosts).map((post) => {
-              ...post,
-              'is_suggested': true,
-            }),
-      ];
-
-      // Ordenar todos los posts por fecha
-      allPosts.sort((a, b) => DateTime.parse(b['created_at'])
-          .compareTo(DateTime.parse(a['created_at'])));
-
-      setState(() {
-        _posts = allPosts;
-        _isLoading = false;
-      });
-    } catch (error) {
-      print('Error cargando posts: $error');
-      setState(() => _isLoading = false);
+  try {
+    // Primero eliminamos las relaciones (likes, comentarios)
+    await supabase.from('likes').delete().eq('post_id', postId);
+    await supabase.from('comments').delete().eq('post_id', postId);
+    await supabase.from('notifications').delete().eq('post_id', postId);
+    
+    // Luego eliminamos el post
+    await supabase.from('post').delete().eq('id', postId);
+    
+    // Actualizamos la lista de posts
+    await _loadPosts();
+    
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: const Text('Publicación eliminada correctamente'),
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(10),
+          ),
+          margin: const EdgeInsets.all(8),
+        ),
+      );
+    }
+  } catch (error) {
+    print('Error al eliminar post: $error');
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: const Text('Error al eliminar la publicación'),
+          backgroundColor: Colors.red,
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(10),
+          ),
+          margin: const EdgeInsets.all(8),
+        ),
+      );
     }
   }
+}
+
+Future<void> _loadPosts() async {
+  final userId = currentUserId;
+  if (userId == null) return;
+
+  try {
+    final following = await _getFollowingQuery();
+    
+    // Primero, obtener posts de usuarios que seguimos
+    final followingPosts = following.isNotEmpty
+        ? await supabase
+            .from('post')
+            .select('''
+              id, content, created_at, user_id,  media_url,
+              users:user_id (username, avatar_url),
+              likes:likes (count),
+              comments:comments (count)
+            ''')
+            .or('user_id.in.(${following}),user_id.eq.${userId}')
+            .order('created_at', ascending: false)
+        : [];
+
+    // Obtener posts sugeridos (de usuarios que no seguimos)
+    final suggestedPosts = await supabase
+        .from('post')
+        .select('''
+          id, content, created_at, user_id, media_url,
+          users:user_id (username, avatar_url),
+          likes:likes (count),
+          comments:comments (count)
+        ''')
+        .not('user_id', 'in', '($following,$userId)')
+        .order('created_at', ascending: false)
+        .limit(10);
+
+    // Verificar y tratar los datos para evitar nulos
+    List<Map<String, dynamic>> processedFollowingPosts = [];
+    for (var post in followingPosts) {
+      // Asegurar que todos los campos críticos existan
+      if (post['id'] != null && post['created_at'] != null) {
+        processedFollowingPosts.add({
+          ...post,
+          'is_suggested': false,
+        });
+      }
+    }
+
+    List<Map<String, dynamic>> processedSuggestedPosts = [];
+    for (var post in suggestedPosts) {
+      // Asegurar que todos los campos críticos existan
+      if (post['id'] != null && post['created_at'] != null) {
+        processedSuggestedPosts.add({
+          ...post,
+          'is_suggested': true,
+        });
+      }
+    }
+
+    // Combinar los posts procesados
+    final allPosts = [...processedFollowingPosts, ...processedSuggestedPosts];
+
+    // Ordenar con verificación de nulos
+    allPosts.sort((a, b) {
+      if (a['created_at'] == null) return 1;
+      if (b['created_at'] == null) return -1;
+      return DateTime.parse(b['created_at']).compareTo(DateTime.parse(a['created_at']));
+    });
+
+    setState(() {
+      _posts = allPosts;
+      _isLoading = false;
+    });
+  } catch (error) {
+    print('Error cargando posts: $error');
+    // Agregar más información para depuración
+    if (error is Error) {
+      print('StackTrace: ${error.stackTrace}');
+    }
+    setState(() => _isLoading = false);
+  }
+}
 
   Future<String> _getFollowingQuery() async {
     final userId = currentUserId;
@@ -334,6 +436,64 @@ Future<void> _toggleLike(String postId) async {
     }
   }
 
+  // Añade el nuevo método aquí, justo antes del método build
+  Widget _buildImageWidget(String? imageUrl) {
+    if (imageUrl == null) return SizedBox();
+    
+    // Si comienza con '/' o caracteres típicos de Base64, trátalo como Base64
+    if (imageUrl.startsWith('/9j/') || imageUrl.startsWith('iVBOR') || imageUrl.startsWith('data:image')) {
+      String cleanBase64 = imageUrl;
+      
+      // Si la cadena tiene prefijo de datos, extraer solo la parte Base64
+      if (imageUrl.contains('data:image')) {
+        cleanBase64 = imageUrl.split(',')[1];
+      }
+      
+      // Si comienza con '/', asumimos que falta el prefijo
+      if (imageUrl.startsWith('/')) {
+        cleanBase64 = imageUrl;
+      }
+      
+      try {
+        return Image.memory(
+          base64Decode(cleanBase64),
+          fit: BoxFit.cover,
+          width: double.infinity,
+          errorBuilder: (context, error, stackTrace) {
+            print('Error al decodificar imagen Base64: $error');
+            return Container(
+              height: 150,
+              color: Colors.grey[200],
+              child: Center(child: Icon(Icons.broken_image, color: Colors.grey[400])),
+            );
+          },
+        );
+      } catch (e) {
+        print('Error al procesar imagen Base64: $e');
+        return Container(
+          height: 150,
+          color: Colors.grey[200],
+          child: Center(child: Icon(Icons.broken_image, color: Colors.grey[400])),
+        );
+      }
+    } else {
+      // Es una URL normal
+      return Image.network(
+        imageUrl,
+        fit: BoxFit.cover,
+        width: double.infinity,
+        errorBuilder: (context, error, stackTrace) {
+          return Container(
+            height: 150,
+            color: Colors.grey[200],
+            child: Center(child: Icon(Icons.broken_image, color: Colors.grey[400])),
+          );
+        },
+      );
+    }
+  }
+
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -443,12 +603,46 @@ Future<void> _toggleLike(String postId) async {
                                 ),
                               ),
                             ),
-                            if (post['image_url'] != null)
-                              Image.network(
-                                post['image_url'],
-                                fit: BoxFit.cover,
-                                width: double.infinity,
-                              ),
+                            Row(
+  mainAxisAlignment: MainAxisAlignment.start,
+  children: [
+    IconButton(
+      icon: Icon(
+        isLiked ? Icons.favorite : Icons.favorite_border,
+        color: isLiked ? Colors.red : null,
+      ),
+      onPressed: () => _toggleLike(post['id'].toString()),
+    ),
+    Text('${post['likes'][0]['count'] ?? 0}'),
+    IconButton(
+      icon: const Icon(Icons.comment_outlined),
+      onPressed: () => _showComments(context, post['id'].toString()),
+    ),
+    Text('${post['comments'][0]['count'] ?? 0}'),
+    // Agregar botón de eliminar si el usuario es propietario del post
+    if (currentUserId == post['user_id'])
+      IconButton(
+        icon: const Icon(Icons.delete_outline, color: Colors.red),
+        onPressed: () => _deletePost(post['id'].toString(), post['user_id']),
+      ),
+  ],
+),
+    
+// Encuentra esta parte en tu método build:
+if (post['image_url'] != null)
+  Image.network(
+    post['image_url'],
+    fit: BoxFit.cover,
+    width: double.infinity,
+  ),
+
+// Reemplázala con esto:
+if (post['image_url'] != null)
+  _buildImageWidget(post['image_url']),
+
+// Y de igual manera para media_url:
+if (post['media_url'] != null)
+  _buildImageWidget(post['media_url']),
                             Padding(
                               padding: const EdgeInsets.all(16),
                               child: Text(post['content']),
