@@ -5,7 +5,7 @@
 
 ## Descripción
 
-**Rumbo** es una aplicación móvil desarrollada con Flutter que permite a los mochileros y viajeros compartir sus experiencias, recomendaciones y fotos en una plataforma social dinámica. Diseñada para conectar a personas que buscan aventuras y opciones de transporte, MochiSocial es el lugar perfecto para encontrar compañeros de viaje, intercambiar consejos y disfrutar de la comunidad.
+**Rumbo** es una aplicación móvil desarrollada con Flutter que permite a los mochileros y viajeros compartir sus experiencias, recomendaciones y fotos en una plataforma social dinámica. Diseñada para conectar a personas que buscan aventuras y opciones de transporte, Rumbo es el lugar perfecto para encontrar compañeros de viaje, intercambiar consejos y disfrutar de la comunidad.
 
 ## Características
 
@@ -75,10 +75,14 @@ Este proyecto está licenciado bajo la [MIT License](LICENSE).
 ## Contacto
 
 Para más información o consultas, puedes contactarnos a :
-[lilieth chacon](https://github.com/lilieth10)
+[lilieth chacon](https://github.com/lilieth10) 
+
 [jorje mathez](https://github.com/Colifaa)
+
 [morena ruiz](https://github.com/moreetf)
+
 [valeria chitiva](https://github.com/ValeriaChitivaR)
+
 ---
 
 Gracias por tu interés en Rumbo. ¡Esperamos que disfrutes de la aplicación y te ayude a vivir tus mejores aventuras!
