@@ -9,6 +9,7 @@ import 'screens/search_screen.dart';
 import 'screens/post_screen.dart';
 import 'screens/notifications_screen.dart';
 import 'screens/profile_screen.dart';
+import 'screens/user_profile_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -55,6 +56,10 @@ class MyApp extends StatelessWidget {
         '/notifications': (context) => const NotificationsScreen(),
         '/profile': (context) => const ProfileScreen(),
         '/register': (context) => const RegisterScreen(),
+        '/user-profile': (context) {
+          final userId = ModalRoute.of(context)?.settings.arguments as String;
+          return UserProfileScreen(userId: userId);
+        },
       },
     );
   }
