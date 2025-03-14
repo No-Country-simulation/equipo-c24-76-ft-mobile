@@ -12,6 +12,12 @@ class NotificationsScreen extends StatefulWidget {
 
 class _NotificationsScreenState extends State<NotificationsScreen> {
   final supabase = Supabase.instance.client;
+  
+static const Color darkBlue = Color.fromRGBO(18, 38, 17, 1); // negrito
+static const Color teal = Color.fromRGBO(70, 94, 166, 1); // celestito
+static const Color olive = Color.fromRGBO(54, 36, 166, 1); // azul
+static const Color limeYellow = Color.fromRGBO(191, 10, 43, 1); // rojo
+static const Color beige = Color.fromRGBO(217, 30, 133, 1); // rosa
 
   Stream<List<Map<String, dynamic>>> _getNotificationsStream() {
     final userId = supabase.auth.currentUser?.id;
@@ -122,34 +128,75 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Notificaciones'),
+    return Container(
+      // Aplicamos el gradiente a toda la pantalla como contenedor principal
+      decoration: const BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+          colors: [
+            darkBlue,
+            teal,
+          ],
+        ),
       ),
-      body: StreamBuilder<List<Map<String, dynamic>>>(
-        stream: _getNotificationsStream(),
-        builder: (context, snapshot) {
-          if (snapshot.connectionState == ConnectionState.waiting) {
-            return const Center(child: CircularProgressIndicator());
-          }
+      child: Scaffold(
+        // Hacemos transparente el Scaffold para que se vea el gradiente
+        backgroundColor: Colors.transparent,
+        appBar: AppBar(
+          title: const Text(
+            'Notificaciones',
+            style: TextStyle(
+              fontWeight: FontWeight.bold, 
+              fontSize: 20, 
+              color: limeYellow
+            ),
+          ),
+          backgroundColor: Colors.transparent,
+          elevation: 0,
+        ),
+        body: StreamBuilder<List<Map<String, dynamic>>>(
+          stream: _getNotificationsStream(),
+          builder: (context, snapshot) {
+            if (snapshot.connectionState == ConnectionState.waiting) {
+              return const Center(
+                child: CircularProgressIndicator(
+                  color: limeYellow,
+                ),
+              );
+            }
 
-          if (snapshot.hasError) {
-            return Center(child: Text('Error: ${snapshot.error}'));
-          }
+            if (snapshot.hasError) {
+              return Center(
+                child: Text(
+                  'Error: ${snapshot.error}',
+                  style: const TextStyle(color: Colors.white),
+                ),
+              );
+            }
 
-          final notifications = snapshot.data ?? [];
-          
-          if (notifications.isEmpty) {
-            return const Center(child: Text('No hay notificaciones'));
-          }
+            final notifications = snapshot.data ?? [];
+            
+            if (notifications.isEmpty) {
+              return const Center(
+                child: Text(
+                  'No hay notificaciones',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 16,
+                  ),
+                ),
+              );
+            }
 
-          return ListView.builder(
-            itemCount: notifications.length,
-            itemBuilder: (context, index) {
-              return _buildNotificationTile(notifications[index]);
-            },
-          );
-        },
+            return ListView.builder(
+              itemCount: notifications.length,
+              itemBuilder: (context, index) {
+                return _buildNotificationTile(notifications[index]);
+              },
+            );
+          },
+        ),
       ),
     );
   }
