@@ -10,6 +10,7 @@ import 'screens/post_screen.dart';
 import 'screens/notifications_screen.dart';
 import 'screens/profile_screen.dart';
 import 'screens/user_profile_screen.dart';
+import 'theme/app_theme.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -32,7 +33,6 @@ Future<void> requestPermissions() async {
   ].request();
 }
 
-
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
 
@@ -40,11 +40,8 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
-      title: 'Red Social de Viajes',
-      theme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
-        useMaterial3: true,
-      ),
+      title: 'Rumbo',
+      theme: AppTheme.getTheme(),
       initialRoute: '/',
       routes: {
         '/': (context) => const AuthCheck(),
@@ -73,9 +70,9 @@ class AuthCheck extends StatelessWidget {
     final session = Supabase.instance.client.auth.currentSession;
 
     if (session != null) {
-      return const MainNavigationScreen(); // Usuario autenticado, va a inicio
+      return const MainNavigationScreen();
     } else {
-      return const OnboardingScreen(); // Usuario no autenticado, va a onboarding
+      return const OnboardingScreen();
     }
   }
 }
@@ -112,82 +109,50 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       body: _screens[_selectedIndex],
-      extendBody: true, // Importante: permite que el cuerpo se extienda debajo de la navbar
-      bottomNavigationBar: Stack(
-        alignment: Alignment.center,
-        clipBehavior: Clip.none, // Importante: evita que se recorte el botón
-        children: [
-          Container(
-            margin: const EdgeInsets.only(top: 15), // Margen para el botón
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(30),
-              boxShadow: [
-                BoxShadow(
-                  color: const Color.fromARGB(255, 248, 201, 200).withOpacity(0.3),
-                  blurRadius: 10,
-                  spreadRadius: 2,
-                ),
-              ],
+      extendBody: true,
+      bottomNavigationBar: Container(
+        margin: const EdgeInsets.only(top: 15),
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(30),
+          boxShadow: [
+            BoxShadow(
+              color: AppTheme.accentColor.withOpacity(0.3),
+              blurRadius: 10,
+              spreadRadius: 2,
             ),
-            child: ClipRRect(
-              borderRadius: const BorderRadius.only(
-                topLeft: Radius.circular(30),
-                topRight: Radius.circular(30),
-              ),
-              child: BottomNavigationBar(
-                backgroundColor: const Color.fromRGBO(217, 30, 133, 1),
-                selectedItemColor: const Color.fromRGBO(70, 94, 166, 1),
-                unselectedItemColor: const Color.fromRGBO(54, 36, 166, 1).withOpacity(0.9),
-                type: BottomNavigationBarType.fixed,
-                showSelectedLabels: false,
-                showUnselectedLabels: false,
-                elevation: 0,
-                currentIndex: _selectedIndex,
-                onTap: _onItemTapped,
-                items: const [
-                  BottomNavigationBarItem(icon: Icon(Icons.home), label: "Inicio"),
-                  BottomNavigationBarItem(icon: Icon(Icons.search), label: "Buscar"),
-                  BottomNavigationBarItem(icon: Icon(Icons.add_circle, color: Colors.transparent), label: "Publicar"), // Botón invisible
-                  BottomNavigationBarItem(icon: Icon(Icons.notifications), label: "Notificaciones"),
-                  BottomNavigationBarItem(icon: Icon(Icons.person), label: "Perfil"),
-                ],
-              ),
-            ),
+          ],
+        ),
+        child: ClipRRect(
+          borderRadius: const BorderRadius.only(
+            topLeft: Radius.circular(30),
+            topRight: Radius.circular(30),
           ),
-          Positioned(
-            top: 5, // Ajusta este valor para que sobresalga más
-            child: GestureDetector(
-              onTap: () => Navigator.pushNamed(context, '/post'),
-              child: Container(
-                padding: const EdgeInsets.all(2),
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: const Color.fromARGB(255, 255, 255, 255),
-                  boxShadow: [
-                    BoxShadow(
-                      color: const Color.fromRGBO(18, 38, 17, 1).withOpacity(0.2),
-                      blurRadius: 5,
-                      spreadRadius: 1,
-                    ),
-                  ],
-                ),
-                child: Container(
-                  padding: const EdgeInsets.all(8),
-                  decoration: const BoxDecoration(
-                    shape: BoxShape.circle,
-                    color: Color.fromRGBO(217, 30, 133, 1),
-                  ),
-                  child: const Icon(
-                    Icons.add_circle,
-                    color: Color.fromRGBO(54, 36, 166, 1),
-                    size: 35,
-                  ),
-                ),
-              ),
-            ),
+          child: BottomNavigationBar(
+            backgroundColor: AppTheme.accentColor,
+            selectedItemColor: AppTheme.primaryBlue,
+            unselectedItemColor: Colors.white.withOpacity(0.7),
+            type: BottomNavigationBarType.fixed,
+            showSelectedLabels: false,
+            showUnselectedLabels: false,
+            elevation: 0,
+            currentIndex: _selectedIndex,
+            onTap: _onItemTapped,
+            items: const [
+              BottomNavigationBarItem(icon: Icon(Icons.home), label: "Inicio"),
+              BottomNavigationBarItem(icon: Icon(Icons.search), label: "Buscar"),
+              BottomNavigationBarItem(icon: Icon(Icons.add_circle, color: Colors.transparent), label: "Publicar"),
+              BottomNavigationBarItem(icon: Icon(Icons.notifications), label: "Notificaciones"),
+              BottomNavigationBarItem(icon: Icon(Icons.person), label: "Perfil"),
+            ],
           ),
-        ],
+        ),
       ),
+      floatingActionButton: FloatingActionButton(
+        onPressed: () => Navigator.pushNamed(context, '/post'),
+        backgroundColor: AppTheme.primaryBlue,
+        child: const Icon(Icons.add, color: Colors.white),
+      ),
+      floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
     );
   }
 }

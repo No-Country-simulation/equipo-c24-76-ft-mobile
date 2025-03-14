@@ -3,6 +3,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:intl/intl.dart'; // Para formatear la fecha
 import 'package:timeago/timeago.dart' as timeago;
 import 'dart:convert';
+import '../theme/app_theme.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -68,90 +69,59 @@ ImageProvider _getAvatarImage(String? avatarUrl) {
 }
 
 
-  Future<void> _deletePost(String postId, String postUserId) async {
-    // Verificar que el usuario actual sea el propietario del post
-    if (currentUserId != postUserId) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: const Text('Solo puedes eliminar tus propias publicaciones'),
-          backgroundColor: Colors.red,
-          behavior: SnackBarBehavior.floating,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(10),
-          ),
-          margin: const EdgeInsets.all(8),
-        ),
-      );
-      return;
-    }
-
-    // Mostrar diálogo de confirmación
-    final confirm = await showDialog<bool>(
-      context: context,
-      builder:
-          (context) => AlertDialog(
-            title: const Text('Eliminar publicación'),
-            content: const Text(
-              '¿Estás seguro de que quieres eliminar esta publicación? Esta acción no se puede deshacer.',
-            ),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.pop(context, false),
-                child: const Text('Cancelar'),
-              ),
-              TextButton(
-                onPressed: () => Navigator.pop(context, true),
-                child: const Text(
-                  'Eliminar',
-                  style: TextStyle(color: Colors.red),
-                ),
-              ),
-            ],
-          ),
-    );
-
-    if (confirm != true) return;
-
+  Future<void> _deletePost(String postId) async {
     try {
-      // Primero eliminamos las relaciones (likes, comentarios)
-      await supabase.from('likes').delete().eq('post_id', postId);
-      await supabase.from('comments').delete().eq('post_id', postId);
-      await supabase.from('notifications').delete().eq('post_id', postId);
-
-      // Luego eliminamos el post
-      await supabase.from('post').delete().eq('id', postId);
-
-      // Actualizamos la lista de posts
+      await supabase
+          .from('post')
+          .delete()
+          .eq('id', postId);
+      
+      // Recargar los posts después de eliminar
       await _loadPosts();
-
+      
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: const Text('Publicación eliminada correctamente'),
-            behavior: SnackBarBehavior.floating,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(10),
-            ),
-            margin: const EdgeInsets.all(8),
+          const SnackBar(
+            content: Text('Post eliminado correctamente'),
+            backgroundColor: Colors.green,
           ),
         );
       }
-    } catch (error) {
-      print('Error al eliminar post: $error');
+    } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: const Text('Error al eliminar la publicación'),
+          const SnackBar(
+            content: Text('Error al eliminar el post'),
             backgroundColor: Colors.red,
-            behavior: SnackBarBehavior.floating,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(10),
-            ),
-            margin: const EdgeInsets.all(8),
           ),
         );
       }
     }
+  }
+
+  Future<void> _showDeleteConfirmation(String postId) async {
+    return showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: const Text('Eliminar post'),
+          content: const Text('¿Estás seguro de que quieres eliminar este post?'),
+          actions: <Widget>[
+            TextButton(
+              child: const Text('Cancelar'),
+              onPressed: () => Navigator.of(context).pop(),
+            ),
+            TextButton(
+              child: const Text('Eliminar', style: TextStyle(color: Colors.red)),
+              onPressed: () {
+                Navigator.of(context).pop();
+                _deletePost(postId);
+              },
+            ),
+          ],
+        );
+      },
+    );
   }
 
   Future<void> _loadPosts() async {
@@ -473,242 +443,276 @@ ImageProvider _getAvatarImage(String? avatarUrl) {
 
   // Añade el nuevo método aquí, justo antes del método build
   Widget _buildImageWidget(String? imageUrl) {
-    if (imageUrl == null) return SizedBox();
+    if (imageUrl == null) return const SizedBox();
 
-    // Si comienza con '/' o caracteres típicos de Base64, trátalo como Base64
-    if (imageUrl.startsWith('/9j/') ||
-        imageUrl.startsWith('iVBOR') ||
-        imageUrl.startsWith('data:image')) {
-      String cleanBase64 = imageUrl;
+    // Contenedor con tamaño fijo para todas las imágenes
+    return Container(
+      height: 300, // Altura fija para todas las imágenes
+      width: double.infinity,
+      decoration: BoxDecoration(
+        color: Colors.grey[200], // Color de fondo para cuando la imagen está cargando
+      ),
+      child: ClipRRect(
+        child: Builder(
+          builder: (context) {
+            try {
+              if (imageUrl.startsWith('/9j/') || imageUrl.startsWith('iVBOR') || imageUrl.startsWith('data:image')) {
+                String cleanBase64 = imageUrl;
 
-      // Si la cadena tiene prefijo de datos, extraer solo la parte Base64
-      if (imageUrl.contains('data:image')) {
-        cleanBase64 = imageUrl.split(',')[1];
-      }
+                if (imageUrl.contains('data:image')) {
+                  cleanBase64 = imageUrl.split(',')[1];
+                }
 
-      // Si comienza con '/', asumimos que falta el prefijo
-      if (imageUrl.startsWith('/')) {
-        cleanBase64 = imageUrl;
-      }
-
-      try {
-        return Image.memory(
-          base64Decode(cleanBase64),
-          fit: BoxFit.cover,
-          width: double.infinity,
-          errorBuilder: (context, error, stackTrace) {
-            print('Error al decodificar imagen Base64: $error');
-            return Container(
-              height: 150,
-              color: Colors.grey[200],
-              child: Center(
-                child: Icon(Icons.broken_image, color: Colors.grey[400]),
-              ),
-            );
+                return Image.memory(
+                  base64.decode(cleanBase64),
+                  fit: BoxFit.cover,
+                  width: double.infinity,
+                  height: 300,
+                  errorBuilder: (context, error, stackTrace) {
+                    debugPrint('Error al decodificar imagen Base64: $error');
+                    return _buildErrorWidget();
+                  },
+                );
+              } else {
+                return Image.network(
+                  imageUrl,
+                  fit: BoxFit.cover,
+                  width: double.infinity,
+                  height: 300,
+                  errorBuilder: (context, error, stackTrace) => _buildErrorWidget(),
+                );
+              }
+            } catch (e) {
+              debugPrint('Error al procesar imagen: $e');
+              return _buildErrorWidget();
+            }
           },
-        );
-      } catch (e) {
-        print('Error al procesar imagen Base64: $e');
-        return Container(
-          height: 150,
-          color: Colors.grey[200],
-          child: Center(
-            child: Icon(Icons.broken_image, color: Colors.grey[400]),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildErrorWidget() {
+    return Container(
+      height: 300,
+      width: double.infinity,
+      color: Colors.grey[200],
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(Icons.broken_image, color: Colors.grey[400], size: 64),
+          const SizedBox(height: 8),
+          Text(
+            'Error al cargar la imagen',
+            style: TextStyle(color: Colors.grey[600]),
           ),
-        );
-      }
-    } else {
-      // Es una URL normal
-      return Image.network(
-        imageUrl,
-        fit: BoxFit.cover,
-        width: double.infinity,
-        errorBuilder: (context, error, stackTrace) {
-          return Container(
-            height: 100, // Ajusta según el tamaño que prefieras
-            width: double.infinity,
-            color: Colors.grey[200],
-            child: Center(
-              child: Icon(Icons.broken_image, color: Colors.grey[400]),
-            ),
-          );
-        },
-      );
-    }
+        ],
+      ),
+    );
   }
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: const Text('Feed'), elevation: 0),
-      body:
-      
-          _isLoading
-              ? const Center(child: CircularProgressIndicator())
-              : _posts.isEmpty
-              ? Center(
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Icon(Icons.post_add, size: 64, color: Colors.grey[400]),
-                    const SizedBox(height: 16),
-                    Text(
-                      'No hay publicaciones para mostrar',
-                      style: TextStyle(color: Colors.grey[600], fontSize: 16),
+    return Container(
+      decoration: BoxDecoration(gradient: AppTheme.mainGradient),
+      child: Scaffold(
+        backgroundColor: Colors.transparent,
+        appBar: AppBar(
+          title: const Text(
+            'Feed',
+            style: TextStyle(
+              color: Colors.white,
+              fontWeight: FontWeight.bold,
+              fontSize: 24,
+            ),
+          ),
+          elevation: 0,
+          backgroundColor: Colors.transparent,
+        ),
+        body: _isLoading
+          ? const Center(
+              child: CircularProgressIndicator(
+                color: Colors.white,
+              ),
+            )
+          : _posts.isEmpty
+          ? Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(
+                    Icons.post_add,
+                    size: 64,
+                    color: Colors.white.withOpacity(0.8),
+                  ),
+                  const SizedBox(height: 16),
+                  Text(
+                    'No hay publicaciones para mostrar',
+                    style: TextStyle(
+                      color: Colors.white.withOpacity(0.8),
+                      fontSize: 16,
                     ),
-                  ],
-                ),
-              )
-              : RefreshIndicator(
-                onRefresh: _loadPosts,
-                child: ListView.builder(
-                  itemCount: _posts.length,
-                  itemBuilder: (context, index) {
-                    final post = _posts[index];
-                    final isLiked = _likedPosts[post['id'].toString()] ?? false;
-                    final isSuggested = post['is_suggested'] ?? false;
+                  ),
+                ],
+              ),
+            )
+          : RefreshIndicator(
+              onRefresh: _loadPosts,
+              color: AppTheme.primaryBlue,
+              child: ListView.builder(
+                itemCount: _posts.length,
+                itemBuilder: (context, index) {
+                  final post = _posts[index];
+                  final isLiked = _likedPosts[post['id'].toString()] ?? false;
+                  final isSuggested = post['is_suggested'] ?? false;
 
-                    return Card(
-                      margin: const EdgeInsets.all(8),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          if (isSuggested)
-                            Container(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 16,
-                                vertical: 8,
-                              ),
-                              color: const Color.fromRGBO(70, 94, 166, 1).withOpacity(0.1),
-                              child: Row(
-                                children: [
-                                  Icon(
-                                    Icons.person_add,
-                                    size: 16,
-                                    color: const Color.fromRGBO(217, 30, 133, 1),
-                                  ),
-                                  const SizedBox(width: 8),
-                                  Text(
-                                    'Publicación sugerida',
-                                    style: TextStyle(
-                                      color: const Color.fromRGBO(217, 30, 133, 1),
-                                      fontWeight: FontWeight.w500,
-                                    ),
-                                  ),
-                                ],
+                  return Card(
+                    margin: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 6,
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        if (isSuggested)
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 16,
+                              vertical: 8,
+                            ),
+                            decoration: BoxDecoration(
+                              color: AppTheme.accentColor.withOpacity(0.1),
+                              borderRadius: const BorderRadius.only(
+                                topLeft: Radius.circular(15),
+                                topRight: Radius.circular(15),
                               ),
                             ),
-ListTile(
-  leading: GestureDetector(
-    onTap: () {
-      Navigator.pushNamed(
-        context,
-        '/user-profile',
-        arguments: post['user_id'],
-      );
-    },
-    child: CircleAvatar(
-      backgroundImage: _getAvatarImage(post['users']['avatar_url']),
-    ),
-  ),              
-                            title: Row(
+                            child: Row(
                               children: [
-                                Expanded(
-                                  child: Text(
-                                    post['users']['username'] ?? 'Usuario',
-                                    style: const TextStyle(
-                                      fontWeight: FontWeight.bold,
-                                    ),
+                                Icon(
+                                  Icons.person_add,
+                                  size: 16,
+                                  color: AppTheme.accentColor,
+                                ),
+                                const SizedBox(width: 8),
+                                Text(
+                                  'Publicación sugerida',
+                                  style: TextStyle(
+                                    color: AppTheme.accentColor,
+                                    fontWeight: FontWeight.w500,
                                   ),
                                 ),
-                                if (isSuggested)
-                                  TextButton.icon(
-                                    icon: const Icon(Icons.person_add),
-                                    label: const Text('Seguir'),
-                                    onPressed: () async {
-                                      await _followUser(post['user_id']);
-                                      _loadPosts(); // Recargar posts después de seguir
-                                    },
-                                    style: TextButton.styleFrom(
-                                      foregroundColor: const Color.fromRGBO(217, 30, 133, 1),
-                                      padding: const EdgeInsets.symmetric(
-                                        horizontal: 12,
-                                      ),
-                                    ),
-                                  ),
                               ],
                             ),
-                            subtitle: Text(
-                              timeago.format(
-                                DateTime.parse(post['created_at']),
-                                locale: 'es',
-                              ),
+                          ),
+                        ListTile(
+                          leading: GestureDetector(
+                            onTap: () {
+                              Navigator.pushNamed(
+                                context,
+                                '/user-profile',
+                                arguments: post['user_id'],
+                              );
+                            },
+                            child: CircleAvatar(
+                              backgroundImage: _getAvatarImage(post['users']['avatar_url']),
                             ),
                           ),
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.start,
+                          title: Row(
                             children: [
-                              IconButton(
-                                icon: Icon(
-                                  isLiked
-                                      ? Icons.favorite
-                                      : Icons.favorite_border,
-                                  color: isLiked ? Colors.red : null,
-                                ),
-                                onPressed:
-                                    () => _toggleLike(post['id'].toString()),
-                              ),
-                              Text('${post['likes'][0]['count'] ?? 0}'),
-                              IconButton(
-                                icon: const Icon(Icons.comment_outlined),
-                                onPressed:
-                                    () => _showComments(
-                                      context,
-                                      post['id'].toString(),
-                                    ),
-                              ),
-                              Text('${post['comments'][0]['count'] ?? 0}'),
-                              // Agregar botón de eliminar si el usuario es propietario del post
-                              if (currentUserId == post['user_id'])
-                                IconButton(
-                                  icon: const Icon(
-                                    Icons.delete_outline,
-                                    color: Color.fromRGBO(191, 10, 43, 1),
+                              Expanded(
+                                child: Text(
+                                  post['users']['username'] ?? 'Usuario',
+                                  style: const TextStyle(
+                                    fontWeight: FontWeight.bold,
                                   ),
-                                  onPressed:
-                                      () => _deletePost(
-                                        post['id'].toString(),
-                                        post['user_id'],
-                                      ),
+                                ),
+                              ),
+                              if (isSuggested)
+                                TextButton.icon(
+                                  icon: const Icon(Icons.person_add),
+                                  label: const Text('Seguir'),
+                                  onPressed: () async {
+                                    await _followUser(post['user_id']);
+                                    _loadPosts(); // Recargar posts después de seguir
+                                  },
+                                  style: TextButton.styleFrom(
+                                    foregroundColor: const Color.fromRGBO(217, 30, 133, 1),
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 12,
+                                    ),
+                                  ),
                                 ),
                             ],
                           ),
-
-                          // Encuentra esta parte en tu método build:
-                          if (post['avatar_url'] != null)
-                            Image.network(
-                              post['avatar_url'],
-                              fit: BoxFit.cover,
-                              width: double.infinity,
+                          subtitle: Text(
+                            timeago.format(
+                              DateTime.parse(post['created_at']),
+                              locale: 'es',
                             ),
-
-                          // Reemplázala con esto:
-                          if (post['avatar_url'] != null)
-                            _buildImageWidget(post['avatar_url']),
-
-                          // Y de igual manera para media_url:
-                          if (post['media_url'] != null)
-                            _buildImageWidget(post['media_url']),
-                          Padding(
-                            padding: const EdgeInsets.all(16),
-                            child: Text(post['content']),
                           ),
-                        ],
-                      ),
-                    );
-                  },
-                ),
+                        ),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.start,
+                          children: [
+                            IconButton(
+                              icon: Icon(
+                                isLiked
+                                    ? Icons.favorite
+                                    : Icons.favorite_border,
+                                color: isLiked ? Colors.red : null,
+                              ),
+                              onPressed:
+                                  () => _toggleLike(post['id'].toString()),
+                            ),
+                            Text('${post['likes'][0]['count'] ?? 0}'),
+                            IconButton(
+                              icon: const Icon(Icons.comment_outlined),
+                              onPressed:
+                                  () => _showComments(
+                                    context,
+                                    post['id'].toString(),
+                                  ),
+                            ),
+                            Text('${post['comments'][0]['count'] ?? 0}'),
+                            // Agregar botón de eliminar si el usuario es propietario del post
+                            if (post['user_id'] == supabase.auth.currentUser?.id)
+                              IconButton(
+                                icon: const Icon(
+                                  Icons.delete_outline,
+                                  color: Color.fromRGBO(191, 10, 43, 1),
+                                ),
+                                onPressed: () => _showDeleteConfirmation(post['id'].toString()),
+                              ),
+                          ],
+                        ),
+
+                        // Encuentra esta parte en tu método build:
+                        if (post['avatar_url'] != null)
+                          Image.network(
+                            post['avatar_url'],
+                            fit: BoxFit.cover,
+                            width: double.infinity,
+                          ),
+
+                        // Reemplázala con esto:
+                        if (post['avatar_url'] != null)
+                          _buildImageWidget(post['avatar_url']),
+
+                        // Y de igual manera para media_url:
+                        if (post['media_url'] != null)
+                          _buildImageWidget(post['media_url']),
+                        Padding(
+                          padding: const EdgeInsets.all(16),
+                          child: Text(post['content']),
+                        ),
+                      ],
+                    ),
+                  );
+                },
               ),
+            ),
+      ),
     );
   }
 }
