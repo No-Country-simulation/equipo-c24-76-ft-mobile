@@ -11,123 +11,36 @@ class NotificationsScreen extends StatefulWidget {
 }
 
 class _NotificationsScreenState extends State<NotificationsScreen> {
-  final SupabaseClient supabase = Supabase.instance.client;
+  final supabase = Supabase.instance.client;
 
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Notificaciones'),
-      ),
-      body: StreamBuilder<List<Map<String, dynamic>>>(  // StreamBuilder para escuchar cambios
-        stream: _getNotificationsStream(),
-        builder: (context, snapshot) {
-          if (snapshot.connectionState == ConnectionState.waiting) {
-            return const Center(child: CircularProgressIndicator());  // Cargando
-          }
-
-          if (snapshot.hasError) {
-            return const Center(child: Text('Error al cargar las notificaciones'));
-          }
-
-          final notifications = snapshot.data ?? [];
-
-          if (notifications.isEmpty) {
-            return const Center(child: Text('No tienes notificaciones aún'));
-          }
-
-          return ListView.builder(
-            itemCount: notifications.length,
-            itemBuilder: (context, index) {
-              final notification = notifications[index];
-              final senderAvatar = notification['sender_avatar'];  // Avatar del usuario
-              final senderId = notification['sender_id'];  // ID del usuario que envió la notificación
-
-              return ListTile(
-                leading: GestureDetector(
-                  onTap: () {
-                    // Al hacer click en el avatar, navegar al perfil del usuario
-                    _navigateToProfile(senderId);
-                  },
-                  child: _buildAvatar(notification['sender_avatar']),
-                ),
-                title: Text(_getNotificationText(notification)),
-                subtitle: Text(
-                  timeago.format(
-                    DateTime.parse(notification['created_at']),
-                    locale: 'es_ES',
-                  ),
-                ),
-                onTap: () {
-                  _handleNotificationTap(notification);
-                },
-              );
-            },
-          );
-        },
-      ),
-    );
-  }
-
-  // Función para obtener las notificaciones con datos enriquecidos (nombre y avatar del usuario)
   Stream<List<Map<String, dynamic>>> _getNotificationsStream() {
     final userId = supabase.auth.currentUser?.id;
-
-    if (userId == null) {
-      return const Stream.empty();
-    }
+    if (userId == null) return const Stream.empty();
 
     return supabase
         .from('notifications')
         .stream(primaryKey: ['id'])
-        .eq('user_id', userId)
+        .eq('user_id', userId.toString())
         .order('created_at', ascending: false)
-        .map((data) async {
+        .asyncMap((data) async {
           final List<Map<String, dynamic>> enrichedData = [];
           for (var row in data) {
-            // Obtener el sender_name, avatar_url y username desde la tabla users usando sender_id
             final sender = await supabase
                 .from('users')
-                .select('username, avatar_url')
+                .select()
                 .eq('id', row['sender_id'])
-                .maybeSingle();
+                .single();
 
-            row['sender_name'] = sender?['username'] ?? 'Usuario desconocido';
-            row['sender_avatar'] = sender?['avatar_url'] ?? '';
-            enrichedData.add(row);
+            enrichedData.add({
+              ...row,
+              'sender_name': sender['username'] ?? 'Usuario',
+              'sender_avatar': sender['avatar_url'] ?? '',
+            });
           }
           return enrichedData;
-        }).asyncMap((event) async {
-          return await event;
         });
   }
 
-  // Función que devuelve el texto de la notificación según el tipo
-  String _getNotificationText(Map<String, dynamic> notification) {
-    switch (notification['type']) {
-      case 'follow':
-        return '📌 ${notification['sender_name']} te ha seguido';
-      case 'like':
-        return '❤️ ${notification['sender_name']} le dio me gusta a tu post';
-      case 'comment':
-        return '💬 ${notification['sender_name']} comentó tu post';
-      default:
-        return '🔔 Nueva notificación';
-    }
-  }
-
-  // Función para manejar la navegación según el tipo de notificación
-  void _handleNotificationTap(Map<String, dynamic> notification) {
-    if (notification['type'] == 'follow') {
-      // Navegar al perfil del usuario que sigue
-      _navigateToProfile(notification['sender_id']);
-    } else if (notification['type'] == 'like' || notification['type'] == 'comment') {
-      // Navegar al post específico
-      Navigator.pushNamed(context, '/post', arguments: notification['post_id']);
-    }
-  }
-
-  // Modifica el Widget que muestra el avatar
   Widget _buildAvatar(String? avatarUrl) {
     if (avatarUrl == null || avatarUrl.isEmpty) {
       return const CircleAvatar(
@@ -137,41 +50,107 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
       );
     }
 
-    try {
-      if (avatarUrl.startsWith('data:image')) {
+    // Si el avatar es una imagen en base64
+    if (avatarUrl.startsWith('data:image')) {
+      try {
         final base64Str = avatarUrl.split(',')[1];
         return CircleAvatar(
           radius: 20,
-          backgroundImage: MemoryImage(base64Decode(base64Str)),
-          onBackgroundImageError: (_, __) {},
+          backgroundImage: MemoryImage(base64.decode(base64Str)),
+          backgroundColor: Colors.grey,
+          child: const Icon(Icons.person, color: Colors.white),
         );
-      } else {
-        return CircleAvatar(
+      } catch (e) {
+        return const CircleAvatar(
           radius: 20,
-          backgroundImage: NetworkImage(avatarUrl),
-          onBackgroundImageError: (_, __) {},
+          backgroundColor: Colors.grey,
+          child: Icon(Icons.person, color: Colors.white),
         );
       }
-    } catch (e) {
-      return const CircleAvatar(
-        radius: 20,
-        backgroundColor: Colors.grey,
-        child: Icon(Icons.error, color: Colors.white),
-      );
+    }
+
+    // Si el avatar es una URL
+    return CircleAvatar(
+      radius: 20,
+      backgroundImage: NetworkImage(avatarUrl),
+      backgroundColor: Colors.grey,
+      child: const Icon(Icons.person, color: Colors.white),
+      onBackgroundImageError: (_, __) {},
+    );
+  }
+
+  void _navigateToUserProfile(String userId) {
+    Navigator.pushNamed(
+      context,
+      '/user-profile',
+      arguments: userId,
+    );
+  }
+
+  Widget _buildNotificationTile(Map<String, dynamic> notification) {
+    return ListTile(
+      leading: GestureDetector(
+        onTap: () => _navigateToUserProfile(notification['sender_id']),
+        child: _buildAvatar(notification['sender_avatar']),
+      ),
+      title: Text(_getNotificationText(notification)),
+      subtitle: Text(
+        timeago.format(
+          DateTime.parse(notification['created_at']),
+          locale: 'es_ES',
+        ),
+      ),
+      onTap: () => _navigateToUserProfile(notification['sender_id']),
+    );
+  }
+
+  String _getNotificationText(Map<String, dynamic> notification) {
+    final senderName = notification['sender_name'] ?? 'Usuario';
+    final type = notification['type'];
+
+    switch (type) {
+      case 'follow':
+        return '$senderName te empezó a seguir';
+      case 'like':
+        return 'A $senderName le gustó tu post';
+      case 'comment':
+        return '$senderName comentó tu post';
+      default:
+        return 'Nueva notificación de $senderName';
     }
   }
 
-  void _navigateToProfile(String userId) {
-    // Si el userId es el del usuario actual, ir a su perfil
-    if (userId == supabase.auth.currentUser?.id) {
-      Navigator.pushNamed(context, '/profile');
-    } else {
-      // Si es otro usuario, ir al perfil de usuario
-      Navigator.pushNamed(
-        context,
-        '/user-profile',
-        arguments: userId,
-      );
-    }
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('Notificaciones'),
+      ),
+      body: StreamBuilder<List<Map<String, dynamic>>>(
+        stream: _getNotificationsStream(),
+        builder: (context, snapshot) {
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return const Center(child: CircularProgressIndicator());
+          }
+
+          if (snapshot.hasError) {
+            return Center(child: Text('Error: ${snapshot.error}'));
+          }
+
+          final notifications = snapshot.data ?? [];
+          
+          if (notifications.isEmpty) {
+            return const Center(child: Text('No hay notificaciones'));
+          }
+
+          return ListView.builder(
+            itemCount: notifications.length,
+            itemBuilder: (context, index) {
+              return _buildNotificationTile(notifications[index]);
+            },
+          );
+        },
+      ),
+    );
   }
 }

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'dart:convert';
+import 'package:timeago/timeago.dart' as timeago;
 
 class UserProfileScreen extends StatefulWidget {
   final String userId;
@@ -133,6 +134,147 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
     }
   }
 
+  // Agregar este método para cargar los posts
+  Stream<List<Map<String, dynamic>>> _getPostsStream() {
+    return supabase
+        .from('post')
+        .stream(primaryKey: ['id'])
+        .eq('user_id', widget.userId)
+        .order('created_at', ascending: false);
+  }
+
+  // Método para borrar un post
+  Future<void> _deletePost(String postId) async {
+    try {
+      await supabase
+          .from('post')
+          .delete()
+          .eq('id', postId);
+      
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Post eliminado correctamente')),
+      );
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Error al eliminar el post'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
+  }
+
+  // Método para mostrar el diálogo de confirmación
+  Future<void> _showDeleteConfirmation(String postId) async {
+    return showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: const Text('Eliminar post'),
+          content: const Text('¿Estás seguro de que quieres eliminar este post?'),
+          actions: <Widget>[
+            TextButton(
+              child: const Text('Cancelar'),
+              onPressed: () => Navigator.of(context).pop(),
+            ),
+            TextButton(
+              child: const Text('Eliminar', style: TextStyle(color: Colors.red)),
+              onPressed: () {
+                Navigator.of(context).pop();
+                _deletePost(postId);
+              },
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  Widget _buildPostList() {
+    return StreamBuilder<List<Map<String, dynamic>>>(
+      stream: _getPostsStream(),
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const Center(child: CircularProgressIndicator());
+        }
+
+        if (snapshot.hasError) {
+          return Center(child: Text('Error: ${snapshot.error}'));
+        }
+
+        final posts = snapshot.data ?? [];
+        if (posts.isEmpty) {
+          return const Center(child: Text('No hay posts para mostrar'));
+        }
+
+        return ListView.builder(
+          shrinkWrap: true,
+          physics: const NeverScrollableScrollPhysics(),
+          itemCount: posts.length,
+          itemBuilder: (context, index) {
+            final post = posts[index];
+            return Card(
+              margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  ListTile(
+                    leading: _buildAvatar(userData?['avatar_url']),
+                    title: Text(userData?['username'] ?? 'Usuario'),
+                    subtitle: Text(
+                      timeago.format(
+                        DateTime.parse(post['created_at']),
+                        locale: 'es_ES',
+                      ),
+                    ),
+                    trailing: post['user_id'] == supabase.auth.currentUser?.id
+                        ? IconButton(
+                            icon: const Icon(Icons.delete),
+                            onPressed: () => _showDeleteConfirmation(post['id']),
+                          )
+                        : null,
+                  ),
+                  Padding(
+                    padding: const EdgeInsets.all(16.0),
+                    child: Text(post['content']),
+                  ),
+                  if (post['media_url'] != null && post['media_url'].isNotEmpty)
+                    Padding(
+                      padding: const EdgeInsets.all(8.0),
+                      child: _buildPostImage(post['media_url']),
+                    ),
+                ],
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+
+  Widget _buildPostImage(String mediaUrl) {
+    try {
+      if (mediaUrl.startsWith('data:image')) {
+        final base64Str = mediaUrl.split(',')[1];
+        return Image.memory(
+          base64.decode(base64Str),
+          fit: BoxFit.cover,
+          errorBuilder: (context, error, stackTrace) =>
+              const Icon(Icons.error),
+        );
+      } else {
+        return Image.network(
+          mediaUrl,
+          fit: BoxFit.cover,
+          errorBuilder: (context, error, stackTrace) =>
+              const Icon(Icons.error),
+        );
+      }
+    } catch (e) {
+      return const Icon(Icons.error);
+    }
+  }
+
   Widget _buildAvatar(String? avatarUrl) {
     if (avatarUrl == null || avatarUrl.isEmpty) {
       return const CircleAvatar(
@@ -246,6 +388,8 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
                   ),
                 ),
               ),
+            const Divider(height: 32),
+            _buildPostList(),
           ],
         ),
       ),

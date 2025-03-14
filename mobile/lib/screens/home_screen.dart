@@ -602,7 +602,7 @@ ListTile(
     onTap: () {
       Navigator.pushNamed(
         context,
-        '/profile',
+        '/user-profile',
         arguments: post['user_id'],
       );
     },
