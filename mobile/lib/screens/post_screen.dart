@@ -3,6 +3,7 @@ import 'package:image_picker/image_picker.dart';
 import 'dart:io';
 import 'dart:convert';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import '../theme/app_theme.dart';
 
 class PostScreen extends StatefulWidget {
   const PostScreen({super.key});
@@ -16,16 +17,81 @@ class _PostScreenState extends State<PostScreen> {
   File? _imageFile;
   final ImagePicker _picker = ImagePicker();
   bool _isUploading = false;
+  String _username = '';
+  String _avatarUrl = '';
 
   // Obtener la instancia de Supabase
   final supabase = Supabase.instance.client;
 
-  // colorcitos
-  static const Color darkBlue = Color.fromRGBO(18, 38, 17, 1); // negrito
-  static const Color teal = Color.fromRGBO(70, 94, 166, 1); // celestito
-  static const Color olive = Color.fromRGBO(54, 36, 166, 1); // azul
-  static const Color limeYellow = Color.fromRGBO(191, 10, 43, 1); // rojo
-  static const Color beige = Color.fromRGBO(217, 30, 133, 1); // rosa
+  @override
+  void initState() {
+    super.initState();
+    _loadUserData();
+  }
+
+  Future<void> _loadUserData() async {
+    try {
+      final userId = supabase.auth.currentUser?.id;
+      if (userId == null) return;
+
+      final userData = await supabase
+          .from('users')
+          .select('username, avatar_url')
+          .eq('id', userId)
+          .single();
+
+      if (mounted) {
+        setState(() {
+          _username = userData['username'] ?? 'Usuario';
+          _avatarUrl = userData['avatar_url'] ?? '';
+        });
+      }
+    } catch (e) {
+      debugPrint('Error al cargar datos del usuario: $e');
+    }
+  }
+
+  Widget _buildAvatar() {
+    if (_avatarUrl.isEmpty) {
+      return const CircleAvatar(
+        radius: 24,
+        backgroundColor: AppTheme.avatarBackground,
+        child: Icon(Icons.person, color: Colors.white, size: 30),
+      );
+    }
+
+    try {
+      if (_avatarUrl.startsWith('data:image')) {
+        final base64Str = _avatarUrl.split(',')[1];
+        return CircleAvatar(
+          radius: 24,
+          backgroundImage: MemoryImage(base64.decode(base64Str)),
+          backgroundColor: AppTheme.avatarBackground,
+          onBackgroundImageError: (_, __) => const Icon(Icons.person, color: Colors.white, size: 30),
+        );
+      } else if (_avatarUrl.startsWith('/9j/')) {
+        return CircleAvatar(
+          radius: 24,
+          backgroundImage: MemoryImage(base64.decode(_avatarUrl)),
+          backgroundColor: AppTheme.avatarBackground,
+          onBackgroundImageError: (_, __) => const Icon(Icons.person, color: Colors.white, size: 30),
+        );
+      } else {
+        return CircleAvatar(
+          radius: 24,
+          backgroundImage: NetworkImage(_avatarUrl),
+          backgroundColor: AppTheme.avatarBackground,
+          onBackgroundImageError: (_, __) => const Icon(Icons.person, color: Colors.white, size: 30),
+        );
+      }
+    } catch (e) {
+      return const CircleAvatar(
+        radius: 24,
+        backgroundColor: AppTheme.avatarBackground,
+        child: Icon(Icons.person, color: Colors.white, size: 30),
+      );
+    }
+  }
 
   Future<void> _pickImage() async {
     final XFile? pickedFile = await _picker.pickImage(
@@ -73,7 +139,7 @@ class _PostScreenState extends State<PostScreen> {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('El contenido no puede estar vacío'),
-          backgroundColor: darkBlue,
+          backgroundColor: AppTheme.primaryBlue,
         ),
       );
       return;
@@ -121,7 +187,7 @@ class _PostScreenState extends State<PostScreen> {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('¡Publicación realizada con éxito!'),
-          backgroundColor: olive,
+          backgroundColor: AppTheme.accentColor,
         ),
       );
       
@@ -152,261 +218,149 @@ class _PostScreenState extends State<PostScreen> {
   @override
   Widget build(BuildContext context) {
     return Container(
-      // Aplicamos el gradiente a toda la pantalla como contenedor principal
-      decoration: const BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topCenter,
-          end: Alignment.bottomCenter,
-          colors: [
-            darkBlue,
-            teal,
-          ],
-        ),
-      ),
+      decoration: BoxDecoration(gradient: AppTheme.mainGradient),
       child: Scaffold(
-        // Hacemos transparente el Scaffold para que se vea el gradiente
         backgroundColor: Colors.transparent,
         appBar: AppBar(
           title: const Text(
             'Nueva Publicación',
-            style: TextStyle(fontWeight: FontWeight.bold, fontSize: 20, color: limeYellow),
-          ),
-          actions: [
-            Padding(
-              padding: const EdgeInsets.only(right: 16),
-              child: _isUploading
-                  ? const SizedBox(
-                      width: 90,
-                      child: Center(
-                        child: CircularProgressIndicator(
-                          color: limeYellow,
-                          strokeWidth: 3,
-                        ),
-                      ),
-                    )
-                  : ElevatedButton(
-                      onPressed: _publishPost,
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: limeYellow,
-                        foregroundColor: darkBlue,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(20),
-                        ),
-                        padding: const EdgeInsets.symmetric(horizontal: 16),
-                      ),
-                      child: const Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Text('Publicar', style: TextStyle(fontWeight: FontWeight.bold)),
-                          SizedBox(width: 4),
-                          Icon(Icons.send, size: 16),
-                        ],
-                      ),
-                    ),
+            style: TextStyle(
+              color: Colors.white,
+              fontWeight: FontWeight.bold,
+              fontSize: 24,
             ),
-          ],
-          backgroundColor: Colors.transparent,
+          ),
           elevation: 0,
+          backgroundColor: Colors.transparent,
         ),
         body: SingleChildScrollView(
-          padding: const EdgeInsets.all(16.0),
+          padding: const EdgeInsets.all(16),
           child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              // Avatar y nombre de usuario (simulado)
-              Row(
-                children: [
-                  const CircleAvatar(
-                    radius: 24,
-                    backgroundColor: limeYellow,
-                    child: Icon(Icons.person, color: darkBlue, size: 30),
-                  ),
-                  const SizedBox(width: 12),
-                  Column(
+              Card(
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(15),
+                ),
+                child: Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
-                    children: const [
-                      Text(
-                        'Tu Nombre',
-                        style: TextStyle(
-                          fontWeight: FontWeight.bold,
-                          fontSize: 16,
-                          color: limeYellow,
+                    children: [
+                      Row(
+                        children: [
+                          _buildAvatar(),
+                          const SizedBox(width: 12),
+                          Text(
+                            '@$_username',
+                            style: const TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                              color: AppTheme.textPrimary,
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 16),
+                      TextField(
+                        controller: _contentController,
+                        maxLines: 4,
+                        decoration: InputDecoration(
+                          hintText: '¿Qué estás pensando?',
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          filled: true,
+                          fillColor: Colors.white,
                         ),
                       ),
-                      Text(
-                        '@usuario',
-                        style: TextStyle(
-                          fontSize: 14,
-                          color: beige,
+                      const SizedBox(height: 16),
+                      if (_imageFile != null) ...[
+                        ClipRRect(
+                          borderRadius: BorderRadius.circular(10),
+                          child: Image.file(
+                            _imageFile!,
+                            fit: BoxFit.cover,
+                            height: 200,
+                            width: double.infinity,
+                          ),
                         ),
+                        const SizedBox(height: 8),
+                        TextButton.icon(
+                          onPressed: _removeImage,
+                          icon: const Icon(Icons.delete, color: Colors.red),
+                          label: const Text(
+                            'Eliminar imagen',
+                            style: TextStyle(color: Colors.red),
+                          ),
+                        ),
+                      ],
+                      const SizedBox(height: 16),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                        children: [
+                          ElevatedButton.icon(
+                            onPressed: _pickImage,
+                            icon: const Icon(Icons.photo_library),
+                            label: const Text('Galería'),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: AppTheme.primaryBlue,
+                              foregroundColor: Colors.white,
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 20,
+                                vertical: 12,
+                              ),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(10),
+                              ),
+                            ),
+                          ),
+                          ElevatedButton.icon(
+                            onPressed: _takePhoto,
+                            icon: const Icon(Icons.camera_alt),
+                            label: const Text('Cámara'),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: AppTheme.primaryBlue,
+                              foregroundColor: Colors.white,
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 20,
+                                vertical: 12,
+                              ),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(10),
+                              ),
+                            ),
+                          ),
+                        ],
                       ),
                     ],
                   ),
-                ],
-              ),
-              
-              const SizedBox(height: 20),
-              
-              // Campo de texto
-              Container(
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(16),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withOpacity(0.2),
-                      blurRadius: 10,
-                      offset: const Offset(0, 4),
-                    ),
-                  ],
-                ),
-                padding: const EdgeInsets.all(16),
-                child: Column(
-                  children: [
-                    TextField(
-                      controller: _contentController,
-                      maxLength: 280,
-                      maxLines: 6,
-                      decoration: InputDecoration(
-                        hintText: '¿Qué estás pensando?',
-                        border: InputBorder.none,
-                        hintStyle: TextStyle(color: darkBlue.withOpacity(0.4)),
-                      ),
-                      style: const TextStyle(fontSize: 16, color: darkBlue),
-                    ),
-                    
-                    // Contador de caracteres personalizado
-                    Align(
-                      alignment: Alignment.centerRight,
-                      child: Text(
-                        '${_contentController.text.length}/280',
-                        style: TextStyle(
-                          color: _contentController.text.length > 260
-                              ? olive
-                              : teal,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                    ),
-                  ],
                 ),
               ),
-              
               const SizedBox(height: 20),
-              
-              // Imagen seleccionada
-              if (_imageFile != null)
-                Stack(
-                  children: [
-                    Container(
-                      decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(16),
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.black.withOpacity(0.2),
-                            blurRadius: 10,
-                            offset: const Offset(0, 4),
-                          ),
-                        ],
-                      ),
-                  child: ClipRRect(
-  borderRadius: BorderRadius.circular(16),
-  child: Image.file(
-    _imageFile!,
-    height: 200, // Ajusta según el tamaño que prefieras
-    width: double.infinity,
-    fit: BoxFit.cover, // Asegura que la imagen se ajuste al tamaño especificado
-  ),
-),
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                  onPressed: _isUploading ? null : _publishPost,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppTheme.accentColor,
+                    padding: const EdgeInsets.symmetric(vertical: 16),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(10),
                     ),
-                    Positioned(
-                      top: 10,
-                      right: 10,
-                      child: GestureDetector(
-                        onTap: _removeImage,
-                        child: Container(
-                          padding: const EdgeInsets.all(6),
-                          decoration: const BoxDecoration(
-                            color: limeYellow,
-                            shape: BoxShape.circle,
-                          ),
-                          child: const Icon(
-                            Icons.close,
-                            color: darkBlue,
-                            size: 20,
+                  ),
+                  child: _isUploading
+                      ? const CircularProgressIndicator(color: Colors.white)
+                      : const Text(
+                          'Publicar',
+                          style: TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
                           ),
                         ),
-                      ),
-                    ),
-                  ],
                 ),
-              
-              const SizedBox(height: 20),
-              
-              // Botones de medios
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                children: [
-                  _mediaButton(
-                    icon: Icons.image,
-                    label: 'Galería',
-                    onTap: _pickImage,
-                    color: olive,
-                    bgColor: Colors.white,
-                  ),
-                  _mediaButton(
-                    icon: Icons.camera_alt,
-                    label: 'Cámara',
-                    onTap: _takePhoto,
-                    color: limeYellow,
-                    bgColor: Colors.white,
-                  ),
-                ],
               ),
             ],
           ),
-        ),
-      ),
-    );
-  }
-  
-  Widget _mediaButton({
-    required IconData icon,
-    required String label,
-    required VoidCallback onTap,
-    required Color color,
-    required Color bgColor,
-  }) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        width: 150,
-        padding: const EdgeInsets.symmetric(vertical: 12),
-        decoration: BoxDecoration(
-          color: bgColor,
-          borderRadius: BorderRadius.circular(16),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withOpacity(0.2),
-              blurRadius: 8,
-              offset: const Offset(0, 3),
-            ),
-          ],
-        ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(icon, color: color, size: 28),
-            const SizedBox(height: 8),
-            Text(
-              label,
-              style: TextStyle(
-                color: color,
-                fontWeight: FontWeight.bold,
-                fontSize: 14,
-              ),
-            ),
-          ],
         ),
       ),
     );

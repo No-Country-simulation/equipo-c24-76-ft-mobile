@@ -285,7 +285,7 @@ class _SearchScreenState extends State<SearchScreen> {
                           onTap: () {
                             Navigator.pushNamed(
                               context, 
-                              '/profile',
+                              '/user-profile',
                               arguments: user['id'],
                             );
                           },
