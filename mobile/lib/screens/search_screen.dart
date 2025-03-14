@@ -142,13 +142,13 @@ await supabase.from('notifications').insert({
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.grey[100],
+      backgroundColor: const Color.fromRGBO(18, 38, 17, 1),
       appBar: AppBar(
         elevation: 0,
-        backgroundColor: Colors.white,
+        backgroundColor: const Color.fromRGBO(54, 32, 166, 1),
         title: Container(
           decoration: BoxDecoration(
-            color: Colors.grey[200],
+            color: const Color.fromARGB(255, 184, 199, 244),
             borderRadius: BorderRadius.circular(25),
           ),
           child: TextField(
@@ -156,10 +156,10 @@ await supabase.from('notifications').insert({
             decoration: InputDecoration(
               hintText: 'Buscar usuarios...',
               border: InputBorder.none,
-              prefixIcon: const Icon(Icons.search, color: Colors.grey),
+              prefixIcon: const Icon(Icons.search, color: Color.fromRGBO(217, 30, 133, 1)),
               suffixIcon: _searchController.text.isNotEmpty
                 ? IconButton(
-                    icon: const Icon(Icons.clear, color: Colors.grey),
+                    icon: const Icon(Icons.clear, color: Color.fromARGB(255, 38, 38, 38)),
                     onPressed: () {
                       _searchController.clear();
                       _fetchUsers();
@@ -214,7 +214,7 @@ await supabase.from('notifications').insert({
           : NetworkImage(user['avatar_url']) // Si es una URL normal, usamos NetworkImage
       : null,
   child: user['avatar_url'] == null || user['avatar_url'].isEmpty
-      ? Icon(Icons.person, size: 30, color: Colors.grey)
+      ? Icon(Icons.person, size: 30, color: const Color.fromRGBO(70, 94, 166, 1))
       : null,
 ),
 
@@ -241,8 +241,8 @@ await supabase.from('notifications').insert({
                         trailing: ElevatedButton(
                           onPressed: () => _followUser(user['id']),
                           style: ElevatedButton.styleFrom(
-                            backgroundColor: isFollowing ? Colors.grey[300] : Colors.blue,
-                            foregroundColor: isFollowing ? Colors.black : Colors.white,
+                            backgroundColor: isFollowing ? const Color.fromRGBO(191, 10, 43, 1) : const Color.fromRGBO(217, 30, 133, 1),
+                            foregroundColor: isFollowing ? const Color.fromARGB(255, 255, 255, 255) : Colors.white,
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(20),
                             ),
