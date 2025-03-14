@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:google_fonts/google_fonts.dart';
 
 class RegisterScreen extends StatefulWidget {
   const RegisterScreen({Key? key}) : super(key: key);
@@ -126,33 +127,31 @@ class _RegisterScreenState extends State<RegisterScreen> {
   }
 
   @override
-  Widget build(BuildContext context) {
+ Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text("Registro")),
-      body: Padding(
-        padding: const EdgeInsets.all(16.0),
+      appBar: AppBar(title: const Text("Registro", 
+      style: TextStyle(fontWeight: FontWeight.bold, color: Colors.white)),
+        centerTitle: true,
+        backgroundColor: Color(0xFF3624A6),
+        elevation: 0,),
+       body: Container(
+      decoration: const BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+          colors: [
+            Color(0xFFFE77FF), Colors.white, // Color superior (rosa)
+            Color(0xFF465EA6), // Color inferior (azul)
+          ],
+        ),
+      ),
+
+      child: Padding(
+        padding: const EdgeInsets.all(20.0),
         child: Form(
           key: _formKey,
           child: ListView(
-            children: [
-              TextFormField(
-                controller: _usernameController,
-                decoration: const InputDecoration(labelText: "Nombre de usuario"),
-                validator: (value) {
-                  if (value == null || value.isEmpty) {
-                    return "Ingrese su nombre de usuario";
-                  }
-                  return null;
-                },
-              ),
-              const SizedBox(height: 10),
-              TextFormField(
-                controller: _bioController,
-                decoration: const InputDecoration(labelText: "Biografía (opcional)"),
-              ),
-              const SizedBox(height: 20),
-              
-              // Widget para seleccionar imagen
+            children: [              // Widget para seleccionar imagen
               Center(
                 child: Column(
                   children: [
@@ -173,7 +172,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                             height: 120,
                             decoration: const BoxDecoration(
                               shape: BoxShape.circle,
-                              color: Colors.grey,
+                              color: Color(0xFF465EA6),
                             ),
                             child: const Icon(
                               Icons.person,
@@ -190,47 +189,50 @@ class _RegisterScreenState extends State<RegisterScreen> {
                   ],
                 ),
               ),
-              
+
               const SizedBox(height: 20),
-              TextFormField(
-                controller: _emailController,
-                decoration: const InputDecoration(labelText: "Correo electrónico"),
-                keyboardType: TextInputType.emailAddress,
-                validator: (value) {
-                  if (value == null || value.isEmpty) return "Ingrese su email";
-                  if (!RegExp(r'^[^@]+@[^@]+\.[^@]+').hasMatch(value)) {
-                    return "Ingrese un email válido";
-                  }
-                  return null;
-                },
-              ),
-              const SizedBox(height: 10),
-              TextFormField(
-                controller: _passwordController,
-                decoration: const InputDecoration(labelText: "Contraseña"),
-                obscureText: true,
-                validator: (value) {
-                  if (value == null || value.isEmpty) return "Ingrese su contraseña";
-                  if (value.length < 6) return "Mínimo 6 caracteres";
-                  return null;
-                },
-              ),
+              _buildTextField(_usernameController, "Nombre de usuario", Icons.person),
+              _buildTextField(_bioController, "Biografía (opcional)", Icons.info, isOptional: true),
+              _buildTextField(_emailController, "Correo electrónico", Icons.email, isEmail: true),
+              _buildTextField(_passwordController, "Contraseña", Icons.lock, isPassword: true),
               const SizedBox(height: 20),
               _isLoading
                   ? const Center(child: CircularProgressIndicator())
                   : ElevatedButton(
                       onPressed: _register,
-                      child: const Text("Registrarse"),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Color(0xFF3624A6),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                        padding: const EdgeInsets.symmetric(vertical: 14),
+                      ),
+                      child: const Text("Registrarse", style: TextStyle(fontSize: 16, color: Colors.white)),
                     ),
-              const SizedBox(height: 10),
               TextButton(
-                onPressed: () {
-                  Navigator.pushReplacementNamed(context, '/login');
-                },
-                child: const Text("¿Ya tienes cuenta? Inicia sesión"),
+                onPressed: () => Navigator.pushReplacementNamed(context, '/login'),
+                child: const Text("¿Ya tienes cuenta? Inicia sesión", style: TextStyle(color: Color(0xFF3624A6))),
               ),
             ],
           ),
+        ),
+      ),
+      )
+    );
+  }
+
+  Widget _buildTextField(TextEditingController controller, String label, IconData icon, {bool isPassword = false, bool isEmail = false, bool isOptional = false}) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 15),
+      child: TextFormField(
+        controller: controller,
+        obscureText: isPassword,
+        keyboardType: isEmail ? TextInputType.emailAddress : TextInputType.text,
+        validator: isOptional ? null : (value) => value!.isEmpty ? "Campo requerido" : null,
+        decoration: InputDecoration(
+          labelText: label,
+          prefixIcon: Icon(icon, color: Color(0xFF3624A6)),
+          filled: true,
+          fillColor: Colors.white,
+          border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
         ),
       ),
     );
