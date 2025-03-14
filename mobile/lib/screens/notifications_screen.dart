@@ -47,16 +47,17 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                 leading: GestureDetector(
                   onTap: () {
                     // Al hacer click en el avatar, navegar al perfil del usuario
-                    Navigator.pushNamed(context, '/profile', arguments: senderId);
+                    _navigateToProfile(senderId);
                   },
-                  child: CircleAvatar(
-                    backgroundImage: senderAvatar != null && senderAvatar.isNotEmpty
-                        ? NetworkImage(senderAvatar)  // Si existe el avatar, se muestra
-                        : const NetworkImage('https://via.placeholder.com/150'),  // Imagen por defecto si no hay avatar
-                  ),
+                  child: _buildAvatar(notification['sender_avatar']),
                 ),
                 title: Text(_getNotificationText(notification)),
-                subtitle: Text(timeago.format(DateTime.parse(notification['created_at']))),
+                subtitle: Text(
+                  timeago.format(
+                    DateTime.parse(notification['created_at']),
+                    locale: 'es_ES',
+                  ),
+                ),
                 onTap: () {
                   _handleNotificationTap(notification);
                 },
@@ -84,16 +85,15 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
         .map((data) async {
           final List<Map<String, dynamic>> enrichedData = [];
           for (var row in data) {
-            // Obtener el sender_name y avatar_url desde la tabla users usando sender_id
+            // Obtener el sender_name, avatar_url y username desde la tabla users usando sender_id
             final sender = await supabase
                 .from('users')
-                .select('username, avatar_url') // Obtener el nombre de usuario y avatar
+                .select('username, avatar_url')
                 .eq('id', row['sender_id'])
                 .maybeSingle();
 
-            // Asignar el nombre y el avatar a los datos de la notificación
             row['sender_name'] = sender?['username'] ?? 'Usuario desconocido';
-            row['sender_avatar'] = sender?['avatar_url'] ?? '';  // Aquí asignamos el avatar_url
+            row['sender_avatar'] = sender?['avatar_url'] ?? '';
             enrichedData.add(row);
           }
           return enrichedData;
@@ -120,10 +120,58 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
   void _handleNotificationTap(Map<String, dynamic> notification) {
     if (notification['type'] == 'follow') {
       // Navegar al perfil del usuario que sigue
-      Navigator.pushNamed(context, '/profile', arguments: notification['sender_id']);
+      _navigateToProfile(notification['sender_id']);
     } else if (notification['type'] == 'like' || notification['type'] == 'comment') {
       // Navegar al post específico
       Navigator.pushNamed(context, '/post', arguments: notification['post_id']);
+    }
+  }
+
+  // Modifica el Widget que muestra el avatar
+  Widget _buildAvatar(String? avatarUrl) {
+    if (avatarUrl == null || avatarUrl.isEmpty) {
+      return const CircleAvatar(
+        radius: 20,
+        backgroundColor: Colors.grey,
+        child: Icon(Icons.person, color: Colors.white),
+      );
+    }
+
+    try {
+      if (avatarUrl.startsWith('data:image')) {
+        final base64Str = avatarUrl.split(',')[1];
+        return CircleAvatar(
+          radius: 20,
+          backgroundImage: MemoryImage(base64Decode(base64Str)),
+          onBackgroundImageError: (_, __) {},
+        );
+      } else {
+        return CircleAvatar(
+          radius: 20,
+          backgroundImage: NetworkImage(avatarUrl),
+          onBackgroundImageError: (_, __) {},
+        );
+      }
+    } catch (e) {
+      return const CircleAvatar(
+        radius: 20,
+        backgroundColor: Colors.grey,
+        child: Icon(Icons.error, color: Colors.white),
+      );
+    }
+  }
+
+  void _navigateToProfile(String userId) {
+    // Si el userId es el del usuario actual, ir a su perfil
+    if (userId == supabase.auth.currentUser?.id) {
+      Navigator.pushNamed(context, '/profile');
+    } else {
+      // Si es otro usuario, ir al perfil de usuario
+      Navigator.pushNamed(
+        context,
+        '/user-profile',
+        arguments: userId,
+      );
     }
   }
 }
