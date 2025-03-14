@@ -368,7 +368,7 @@ ImageProvider _getAvatarImage(String? avatarUrl) {
                                 locale: 'es',
                               ),
                               style: TextStyle(
-                                color: Colors.grey[600],
+                                color: const Color.fromRGBO(70, 94, 166, 1),
                                 fontSize: 12,
                               ),
                             ),
@@ -542,6 +542,7 @@ ImageProvider _getAvatarImage(String? avatarUrl) {
     return Scaffold(
       appBar: AppBar(title: const Text('Feed'), elevation: 0),
       body:
+      
           _isLoading
               ? const Center(child: CircularProgressIndicator())
               : _posts.isEmpty
@@ -578,19 +579,19 @@ ImageProvider _getAvatarImage(String? avatarUrl) {
                                 horizontal: 16,
                                 vertical: 8,
                               ),
-                              color: Colors.blue.withOpacity(0.1),
+                              color: const Color.fromRGBO(70, 94, 166, 1).withOpacity(0.1),
                               child: Row(
                                 children: [
                                   Icon(
                                     Icons.person_add,
                                     size: 16,
-                                    color: Colors.blue[700],
+                                    color: const Color.fromRGBO(217, 30, 133, 1),
                                   ),
                                   const SizedBox(width: 8),
                                   Text(
                                     'Publicación sugerida',
                                     style: TextStyle(
-                                      color: Colors.blue[700],
+                                      color: const Color.fromRGBO(217, 30, 133, 1),
                                       fontWeight: FontWeight.w500,
                                     ),
                                   ),
@@ -629,7 +630,7 @@ ListTile(
                                       _loadPosts(); // Recargar posts después de seguir
                                     },
                                     style: TextButton.styleFrom(
-                                      foregroundColor: Colors.blue,
+                                      foregroundColor: const Color.fromRGBO(217, 30, 133, 1),
                                       padding: const EdgeInsets.symmetric(
                                         horizontal: 12,
                                       ),
@@ -672,7 +673,7 @@ ListTile(
                                 IconButton(
                                   icon: const Icon(
                                     Icons.delete_outline,
-                                    color: Colors.red,
+                                    color: Color.fromRGBO(191, 10, 43, 1),
                                   ),
                                   onPressed:
                                       () => _deletePost(
