@@ -249,13 +249,15 @@ Future<void> _signInWithFacebook() async {
                               style: GoogleFonts.poppins(color: Color(0xFF3624A6)),
                             ),
                           ),
+                          const SizedBox(height: 10.0),
                          TextButton(
                           onPressed: () {},
                           child: Text(
                             "¿Olvidaste tu contraseña?",
-                            style: TextStyle(color: Color(0xFF3624A6)),
+                            style: GoogleFonts.poppins(color: Color(0xFF3624A6)),
                           ),
-                        ), /*Row(
+                        ), 
+                        /*Row(
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
                               ElevatedButton(
